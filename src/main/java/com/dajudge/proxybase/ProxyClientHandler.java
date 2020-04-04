@@ -51,8 +51,6 @@ class ProxyClientHandler extends ChannelInboundHandlerAdapter {
             } catch (final Exception e) {
                 LOG.debug("Exception prcessing message from downstrean. Killing channel.", e);
                 ctx.close();
-            } finally {
-                m.release();
             }
         });
     }
