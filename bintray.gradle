@@ -1,0 +1,22 @@
+println "Configuring bintray for tag ${version}..."
+def scmUrl = 'https://github.com/dajudge/proxybase'
+def bintrayUser = System.getenv().BINTRAY_API_USER
+def bintrayKey = System.getenv().BINTRAY_API_KEY
+println "Bintray credentials: ${bintrayUser}:${bintrayKey?.replaceAll(".", "*")}"
+bintray {
+    user = bintrayUser
+    key = bintrayKey
+    pkg {
+        repo = 'proxybase'
+        name = 'proxybase'
+        licenses = ['Apache-2.0']
+        vcsUrl = scmUrl
+        publications = ['ProxybasePublication']
+        version {
+            name = rootProject.version
+            desc = "proxybase ${rootProject.version}"
+            released  = new Date()
+            vcsTag = rootProject.version
+        }
+    }
+}

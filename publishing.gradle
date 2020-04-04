@@ -1,0 +1,39 @@
+def scmUrl = 'https://github.com/dajudge/proxybase'
+def pomConfig = {
+    licenses {
+        license {
+            name "The Apache Software License, Version 2.0"
+            url "http://www.apache.org/licenses/LICENSE-2.0.txt"
+            distribution "repo"
+        }
+    }
+    developers {
+        developer {
+            id "alexstockinger"
+            name "Alex Stockinger"
+            email "mail@alexstockinger.de"
+        }
+    }
+
+    scm {
+        url scmUrl
+    }
+}
+
+publishing {
+    publications {
+        ProxybasePublication(MavenPublication) {
+            from components.java
+            groupId "com.dajudge.proxybase"
+            artifactId 'proxybase'
+            version rootProject.version
+            pom.withXml {
+                def root = asNode()
+                root.appendNode('description', 'proxybase')
+                root.appendNode('name', 'proxybase')
+                root.appendNode('url', scmUrl)
+                root.children().last() + pomConfig
+            }
+        }
+    }
+}

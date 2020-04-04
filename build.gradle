@@ -1,0 +1,48 @@
+plugins {
+    id "java"
+    id "java-library"
+    id "maven-publish"
+    id "com.jfrog.bintray" version "1.8.4"
+    id "com.palantir.git-version" version "0.12.2"
+    id "com.github.hierynomus.license" version "0.15.0"
+}
+
+sourceCompatibility = 1.8
+targetCompatibility = 1.8
+
+repositories {
+    mavenLocal()
+    mavenCentral()
+}
+
+def versionDetails = versionDetails()
+version versionDetails.isCleanTag && gitVersion().startsWith("release/")
+        ? gitVersion().substring("release/".length())
+        : System.currentTimeMillis() + "-SNAPSHOT"
+println "Build version $version"
+
+apply from: "publishing.gradle"
+if (!version.endsWith("-SNAPSHOT")) {
+    apply from: "bintray.gradle"
+} else {
+    println "Not a tag build. Not configuring bintray."
+}
+
+dependencies {
+    // Netty is our network layer
+    implementation 'io.netty:netty-all:4.1.45.Final'
+    // Used for TLS hostname verification
+    implementation 'org.apache.httpcomponents.client5:httpclient5:5.0-beta6'
+    // The logging API
+    implementation 'org.slf4j:slf4j-api:1.7.29'
+}
+
+test {
+    testLogging {
+        showStandardStreams = true
+    }
+}
+
+license {
+    header file("${project.rootDir}/HEADER")
+}
