@@ -15,7 +15,7 @@
  *
  */
 
-package com.dajudge.kafkaproxy.protocol;
+package com.dajudge.proxybase.message;
 
 import io.netty.buffer.ByteBuf;
 import io.netty.buffer.Unpooled;

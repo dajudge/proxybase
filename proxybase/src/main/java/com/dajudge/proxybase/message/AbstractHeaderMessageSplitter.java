@@ -15,7 +15,7 @@
  *
  */
 
-package com.dajudge.kafkaproxy.protocol;
+package com.dajudge.proxybase.message;
 
 import com.dajudge.proxybase.Sink;
 import io.netty.buffer.ByteBuf;
