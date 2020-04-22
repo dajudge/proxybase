@@ -25,12 +25,12 @@ publishing {
         ProxybasePublication(MavenPublication) {
             from components.java
             groupId "com.dajudge.proxybase"
-            artifactId 'proxybase'
+            artifactId project.name
             version rootProject.version
             pom.withXml {
                 def root = asNode()
-                root.appendNode('description', 'proxybase')
-                root.appendNode('name', 'proxybase')
+                root.appendNode('description', "proxybase-${project.name}")
+                root.appendNode('name', "proxybase-${project.name}")
                 root.appendNode('url', scmUrl)
                 root.children().last() + pomConfig
             }
