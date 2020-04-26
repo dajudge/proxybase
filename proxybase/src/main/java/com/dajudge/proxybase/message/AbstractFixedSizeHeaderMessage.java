@@ -30,6 +30,11 @@ public abstract class AbstractFixedSizeHeaderMessage {
     private final ByteBuf headerBuffer;
     private ByteBuf payloadBuffer;
 
+    protected AbstractFixedSizeHeaderMessage(final ByteBuf headerBuffer, final ByteBuf payloadBuffer) {
+        this.headerBuffer = headerBuffer;
+        this.payloadBuffer = payloadBuffer;
+    }
+
     protected AbstractFixedSizeHeaderMessage(final int headerLength) {
         headerBuffer = Unpooled.buffer(headerLength, headerLength);
     }
@@ -82,6 +87,10 @@ public abstract class AbstractFixedSizeHeaderMessage {
 
     public ByteBuf payload() {
         return payloadBuffer;
+    }
+
+    public ByteBuf header() {
+        return headerBuffer;
     }
 
     public void release() {

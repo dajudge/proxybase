@@ -23,12 +23,12 @@ import io.netty.channel.ChannelFuture;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public abstract class AbstractHeaderMessageSplitter<T> implements Sink<ByteBuf> {
-    private static final Logger LOG = LoggerFactory.getLogger(AbstractHeaderMessageSplitter.class);
+public abstract class AbstractFixedSizeHeaderMessageSplitter<T> implements Sink<ByteBuf> {
+    private static final Logger LOG = LoggerFactory.getLogger(AbstractFixedSizeHeaderMessageSplitter.class);
     private final Sink<T> requestSink;
     private T currentRequest = createEmptyRequest();
 
-    protected AbstractHeaderMessageSplitter(final Sink<T> requestSink) {
+    protected AbstractFixedSizeHeaderMessageSplitter(final Sink<T> requestSink) {
         this.requestSink = requestSink;
     }
 
