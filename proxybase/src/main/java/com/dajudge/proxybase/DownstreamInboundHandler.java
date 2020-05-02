@@ -17,24 +17,21 @@
 
 package com.dajudge.proxybase;
 
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.util.function.Consumer;
-
 import static com.dajudge.proxybase.LogHelper.withChannelId;
 
-class ProxyClientHandler extends ChannelInboundHandlerAdapter {
-    private static final Logger LOG = LoggerFactory.getLogger(ProxyClientHandler.class);
+class DownstreamInboundHandler<T> extends ChannelInboundHandlerAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(DownstreamInboundHandler.class);
     private final String channelId;
-    private final Consumer<ByteBuf> messageSink;
+    private final Sink<T> messageSink;
 
-    ProxyClientHandler(
+    DownstreamInboundHandler(
             final String channelId,
-            final Consumer<ByteBuf> messageSink
+            final Sink<T> messageSink
     ) {
         this.channelId = channelId;
         this.messageSink = messageSink;
@@ -43,28 +40,25 @@ class ProxyClientHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
         withChannelId(channelId, () -> {
-            final ByteBuf m = (ByteBuf) msg;
-            LOG.trace("Received {} bytes from downstream.", m.readableBytes());
+            @SuppressWarnings("unchecked") final T m = (T) msg; // In the user we trust
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Received message from downstream: {}", m);
+            }
             try {
                 messageSink.accept(m);
             } catch (final ProxyInternalException e) {
                 LOG.error("Internal proxy error processing message from downstream. Killing channel.", e);
                 ctx.close();
             } catch (final Exception e) {
-                LOG.debug("Exception prcessing message from downstrean. Killing channel.", e);
+                LOG.debug("Exception processing message from downstrean. Killing channel.", e);
                 ctx.close();
             }
         });
     }
 
     @Override
-    public void channelRegistered(final ChannelHandlerContext ctx) {
-        LOG.trace("Channel registered.");
-    }
-
-    @Override
     public void channelUnregistered(final ChannelHandlerContext ctx) {
-        LOG.trace("Channel unregistered.");
+        messageSink.close();
     }
 
     @Override

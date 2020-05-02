@@ -24,7 +24,6 @@ import com.dajudge.proxybase.ca.UpstreamCertificateSupplier;
 import com.dajudge.proxybase.config.Endpoint;
 import com.dajudge.proxybase.config.UpstreamSslConfig;
 import io.netty.bootstrap.ServerBootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.nio.NioEventLoopGroup;
 import io.netty.channel.socket.SocketChannel;
@@ -39,7 +38,7 @@ import java.util.UUID;
 import static com.dajudge.proxybase.LogHelper.withChannelId;
 import static com.dajudge.proxybase.ProxySslHandlerFactory.createSslHandler;
 
-public class ProxyChannel {
+public class ProxyChannel<UI, UO, DI, DO> {
     private static final String PREFIX = ProxyChannel.class.getName();
     public static final String DOWNSTREAM_SSL_HANDLER = PREFIX + "/downstream-ssl-handler";
     public static final String DOWNSTREAM_INBOUND_HANDLER = PREFIX + "/downstream-inbound-handler";
@@ -51,9 +50,9 @@ public class ProxyChannel {
     private final UpstreamSslConfig sslConfig;
     private final NioEventLoopGroup bossGroup;
     private final NioEventLoopGroup upstreamWorkerGroup;
-    private final DownstreamChannelFactory downstreamSinkFactory;
+    private final DownstreamChannelFactory<DI, DO> downstreamSinkFactory;
     private final CertificateAuthority certificateAuthority;
-    private final ProxyContextFactory proxyContextFactory;
+    private final ProxyContextFactory<UI, UO, DI, DO> proxyContextFactory;
     private Channel channel;
 
     ProxyChannel(
@@ -61,9 +60,9 @@ public class ProxyChannel {
             final UpstreamSslConfig sslConfig,
             final NioEventLoopGroup bossGroup,
             final NioEventLoopGroup upstreamWorkerGroup,
-            final DownstreamChannelFactory downstreamSinkFactory,
+            final DownstreamChannelFactory<DI, DO> downstreamSinkFactory,
             final CertificateAuthority certificateAuthority,
-            final ProxyContextFactory proxyContextFactory
+            final ProxyContextFactory<UI, UO, DI, DO> proxyContextFactory
     ) {
         this.endpoint = endpoint;
         this.sslConfig = sslConfig;
@@ -103,14 +102,14 @@ public class ProxyChannel {
             public void initChannel(final SocketChannel ch) {
                 final String channelId = UUID.randomUUID().toString();
                 withChannelId(channelId, () -> {
-                    final ProxyContext proxyContext = proxyContextFactory.createProxyContext();
+                    final ProxyContext<UI, UO, DI, DO> proxyContext = proxyContextFactory.createProxyContext();
                     final ChannelPipeline pipeline = ch.pipeline();
                     proxyContext.customizeUpstreamPipeline(pipeline);
                     LOG.debug("Incoming connection on {} from {}", ch.localAddress(), ch.remoteAddress());
                     final ChannelHandler sslHandler = createSslHandler(upstreamSslConfig);
-                    final ForwardingInboundHandler inboundHandler = createDownstreamHandler(
+                    final UpstreamInboundHandler<UI> inboundHandler = createDownstreamHandler(
                             channelId,
-                            new SocketChannelSink(ch),
+                            new SocketChannelSink<>(ch),
                             proxyContext
                     );
                     pipeline.addLast(UPSTREAM_SSL_HANDLER, sslHandler);
@@ -120,19 +119,19 @@ public class ProxyChannel {
         };
     }
 
-    private ForwardingInboundHandler createDownstreamHandler(
+    private UpstreamInboundHandler<UI> createDownstreamHandler(
             final String channelId,
-            final Sink<ByteBuf> upstreamSink,
-            final ProxyContext proxyContext
+            final Sink<UO> upstreamSink,
+            final ProxyContext<UI, UO, DI, DO> proxyContext
     ) {
-        return new ForwardingInboundHandler(channelId, certSupplier -> {
+        return new UpstreamInboundHandler<>(channelId, certSupplier -> {
             try {
-                return downstreamSinkFactory.create(
+                return proxyContext.downstreamFilter(downstreamSinkFactory.create(
                         channelId,
-                        upstreamSink,
-                        proxyContext,
-                        getClientKeystore(certSupplier)
-                );
+                        proxyContext.upstreamFilter(upstreamSink),
+                        getClientKeystore(certSupplier),
+                        proxyContext::customizeDownstreamPipeline
+                ));
             } catch (final RuntimeException e) {
                 LOG.error("Failed to create downstream channel", e);
                 throw e;
@@ -160,35 +159,4 @@ public class ProxyChannel {
         return endpoint.getHost();
     }
 
-    private static class SocketChannelSink implements Sink<ByteBuf> {
-        private final SocketChannel ch;
-
-        public SocketChannelSink(final SocketChannel ch) {
-            this.ch = ch;
-        }
-
-        @Override
-        public ChannelFuture close() {
-            LOG.trace("Closing upstream channel.");
-            return ch.close().addListener((ChannelFutureListener) future -> {
-                if (future.isSuccess()) {
-                    LOG.trace("Upstream channel closed.");
-                } else {
-                    LOG.warn("Cloud not close upstream channel.", future.cause());
-                }
-            });
-        }
-
-        @Override
-        public void accept(final ByteBuf buffer) {
-            ch.writeAndFlush(buffer.copy()).addListener((ChannelFutureListener) future -> {
-                buffer.release();
-                if (!future.isSuccess()) {
-                    LOG.error("Failed to send {} bytes upstream.", buffer.readableBytes(), future.cause());
-                } else {
-                    LOG.trace("Sent {} bytes upstream.", buffer.readableBytes());
-                }
-            });
-        }
-    }
 }

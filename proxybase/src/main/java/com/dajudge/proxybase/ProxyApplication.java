@@ -20,6 +20,7 @@ package com.dajudge.proxybase;
 import com.dajudge.proxybase.ca.CertificateAuthority;
 import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.UpstreamSslConfig;
+import io.netty.buffer.ByteBuf;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -28,7 +29,7 @@ import java.util.Collection;
 
 import static java.util.stream.Collectors.toList;
 
-public abstract class ProxyApplication {
+public abstract class ProxyApplication<UI, UO, DI, DO> {
     private static final Logger LOG = LoggerFactory.getLogger(ProxyApplication.class);
     private final UpstreamSslConfig upstreamSslConfig;
     private final DownstreamSslConfig downstreamSslConfig;
@@ -52,11 +53,11 @@ public abstract class ProxyApplication {
         shutdownRunnable.run();
     }
 
-    public ProxyApplication start() {
+    public ProxyApplication<UI, UO, DI, DO> start() {
         final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
         final NioEventLoopGroup upstreamWorkerGroup = new NioEventLoopGroup();
         final NioEventLoopGroup downstreamWorkerGroup = new NioEventLoopGroup();
-        final ProxyChannelFactory proxyChannelFactory = new ProxyChannelFactory(
+        final ProxyChannelFactory<UI, UO, DI, DO> proxyChannelFactory = new ProxyChannelFactory<>(
                 downstreamWorkerGroup,
                 serverWorkerGroup,
                 upstreamWorkerGroup,
@@ -64,7 +65,8 @@ public abstract class ProxyApplication {
             downstreamSslConfig,
                 certificateAuthority
         );
-        final Collection<ProxyChannel> proxyChannels = initializeProxyChannels(proxyChannelFactory);
+        final Collection<ProxyChannel<UI, UO, DI, DO>> proxyChannels =
+                initializeProxyChannels(proxyChannelFactory);
         shutdownRunnable = () -> {
             proxyChannels.stream()
                     .map(ProxyChannel::close)
@@ -83,7 +85,17 @@ public abstract class ProxyApplication {
         return this;
     }
 
-    protected abstract Collection<ProxyChannel> initializeProxyChannels(
-            final ProxyChannelFactory proxyChannelFactory
+    protected abstract Collection<ProxyChannel<UI, UO, DI, DO>> initializeProxyChannels(
+            final ProxyChannelFactory<UI, UO, DI, DO> proxyChannelFactory
     );
+
+    public abstract class SimpleProxyApplication extends ProxyApplication<ByteBuf, ByteBuf, ByteBuf, ByteBuf> {
+        protected SimpleProxyApplication(
+                final UpstreamSslConfig upstreamSslConfig,
+                final DownstreamSslConfig downstreamSslConfig,
+                final CertificateAuthority certificateAuthority
+        ) {
+            super(upstreamSslConfig, downstreamSslConfig, certificateAuthority);
+        }
+    }
 }

@@ -21,7 +21,6 @@ import com.dajudge.proxybase.ca.KeyStoreWrapper;
 import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.Endpoint;
 import io.netty.bootstrap.Bootstrap;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.*;
 import io.netty.channel.socket.SocketChannel;
 import io.netty.channel.socket.nio.NioSocketChannel;
@@ -36,21 +35,21 @@ import static com.dajudge.proxybase.ProxyChannel.DOWNSTREAM_SSL_HANDLER;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 
 
-class DownstreamClient implements Sink<ByteBuf> {
+class DownstreamClient<I, O> implements Sink<O> {
     private static final Logger LOG = LoggerFactory.getLogger(DownstreamClient.class);
     private final Channel channel;
 
     DownstreamClient(
-        final String channelId,
-        final Endpoint endpoint,
-        final DownstreamSslConfig sslConfig,
-        final Sink<ByteBuf> messageSink,
-        final EventLoopGroup workerGroup,
-        final KeyStoreWrapper keyStore,
-        final Consumer<ChannelPipeline> pipelineCustomizer
+            final String channelId,
+            final Endpoint endpoint,
+            final DownstreamSslConfig sslConfig,
+            final Sink<I> messageSink,
+            final EventLoopGroup workerGroup,
+            final KeyStoreWrapper keyStore,
+            final Consumer<ChannelPipeline> pipelineCustomizer
     ) {
         final ChannelHandler sslHandler = createHandler(sslConfig, endpoint, keyStore);
-        final ProxyClientHandler inboundHandler = new ProxyClientHandler(channelId, messageSink);
+        final DownstreamInboundHandler<I> inboundHandler = new DownstreamInboundHandler<>(channelId, messageSink);
         try {
             channel = new Bootstrap()
                     .group(workerGroup)
@@ -84,13 +83,19 @@ class DownstreamClient implements Sink<ByteBuf> {
     }
 
     @Override
-    public void accept(final ByteBuf buffer) {
-        LOG.trace("Sending {} bytes downstream.", buffer.readableBytes());
-        channel.writeAndFlush(buffer).addListener((ChannelFutureListener) future -> {
+    public void accept(final O msg) {
+        if (LOG.isTraceEnabled()) {
+            LOG.trace("Sending message downstream: {}", msg);
+        }
+        channel.writeAndFlush(msg).addListener((ChannelFutureListener) future -> {
             if (!future.isSuccess()) {
-                LOG.debug("Failed to send {} bytes downstream.", buffer.readableBytes(), future.cause());
+                if (LOG.isDebugEnabled()) {
+                    LOG.debug("Failed to send message downstream: {}", msg, future.cause());
+                }
             } else {
-                LOG.trace("Sent {} bytes downstream.", buffer.readableBytes());
+                if (LOG.isTraceEnabled()) {
+                    LOG.trace("Sent message downstream: {}", msg);
+                }
             }
         });
     }

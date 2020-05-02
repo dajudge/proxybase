@@ -18,7 +18,6 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ca.UpstreamCertificateSupplier;
-import io.netty.buffer.ByteBuf;
 import io.netty.channel.ChannelHandler;
 import io.netty.channel.ChannelHandlerContext;
 import io.netty.channel.ChannelInboundHandlerAdapter;
@@ -35,15 +34,15 @@ import java.util.function.Function;
 import static com.dajudge.proxybase.LogHelper.withChannelId;
 import static com.dajudge.proxybase.ProxyChannel.UPSTREAM_SSL_HANDLER;
 
-class ForwardingInboundHandler extends ChannelInboundHandlerAdapter {
-    private static final Logger LOG = LoggerFactory.getLogger(ForwardingInboundHandler.class);
+class UpstreamInboundHandler<T> extends ChannelInboundHandlerAdapter {
+    private static final Logger LOG = LoggerFactory.getLogger(UpstreamInboundHandler.class);
     private final String channelId;
-    private final Function<UpstreamCertificateSupplier, Sink<ByteBuf>> sinkFactory;
-    private Sink<ByteBuf> sink;
+    private final Function<UpstreamCertificateSupplier, Sink<T>> sinkFactory;
+    private Sink<T> sink;
 
-    ForwardingInboundHandler(
+    UpstreamInboundHandler(
             final String channelId,
-            final Function<UpstreamCertificateSupplier, Sink<ByteBuf>> sinkFactory
+            final Function<UpstreamCertificateSupplier, Sink<T>> sinkFactory
     ) {
         this.channelId = channelId;
         this.sinkFactory = sinkFactory;
@@ -74,10 +73,12 @@ class ForwardingInboundHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
         withChannelId(channelId, () -> {
-            final ByteBuf buffer = ((ByteBuf) msg);
-            LOG.trace("Received {} bytes from upstream.", buffer.readableBytes());
+            if (LOG.isTraceEnabled()) {
+                LOG.trace("Received message from upstream: {}", msg);
+            }
             try {
-                sink.accept(buffer);
+                @SuppressWarnings("unchecked") final T messageObject = (T) msg; // Trust the user
+                sink.accept(messageObject);
             } catch (final ProxyInternalException e) {
                 LOG.error("Internal proxy error processing message from upstream. Killing channel.", e);
                 ctx.close();
@@ -95,5 +96,4 @@ class ForwardingInboundHandler extends ChannelInboundHandlerAdapter {
             ctx.close();
         });
     }
-
 }

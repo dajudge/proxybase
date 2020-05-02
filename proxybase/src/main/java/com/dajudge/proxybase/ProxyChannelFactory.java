@@ -25,7 +25,7 @@ import io.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-public class ProxyChannelFactory {
+public class ProxyChannelFactory<UI, UO, DI, DO> {
     private static final Logger LOG = LoggerFactory.getLogger(ProxyChannelFactory.class);
     private final NioEventLoopGroup downstreamWorkerGroup;
     private final NioEventLoopGroup serverWorkerGroup;
@@ -50,17 +50,17 @@ public class ProxyChannelFactory {
         this.certificateAuthority = certificateAuthority;
     }
 
-    public ProxyChannel createProxyChannel(
+    public ProxyChannel<UI, UO, DI, DO> createProxyChannel(
             final Endpoint upstreamEndpoint,
             final Endpoint downstreamEndpoint,
-            final ProxyContextFactory proxyContextFactory
+            final ProxyContextFactory<UI, UO, DI, DO> proxyContextFactory
     ) {
-        final DownstreamChannelFactory downstreamSinkFactory = new DownstreamChannelFactory(
+        final DownstreamChannelFactory<DI, DO> downstreamSinkFactory = new DownstreamChannelFactory<>(
                 downstreamEndpoint,
                 downstreamSslConfig,
                 downstreamWorkerGroup
         );
-        final ProxyChannel proxyChannel = new ProxyChannel(
+        final ProxyChannel<UI, UO, DI, DO> proxyChannel = new ProxyChannel<>(
                 upstreamEndpoint,
                 upstreamSslConfig,
                 serverWorkerGroup,
