@@ -19,12 +19,12 @@ package com.dajudge.proxybase;
 
 import io.netty.buffer.ByteBuf;
 
-public interface FilterPairFactory<T> {
-    interface FilterPair<T> {
+public interface ProxyContextFactory {
+    interface ProxyContext {
         Sink<ByteBuf> downstreamFilter(Sink<ByteBuf> downstream);
 
         Sink<ByteBuf> upstreamFilter(Sink<ByteBuf> upstream);
     }
 
-    FilterPair<T> createFilterPair();
+    ProxyContext createProxyContext();
 }

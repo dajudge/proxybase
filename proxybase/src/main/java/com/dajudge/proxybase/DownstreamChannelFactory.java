@@ -17,6 +17,7 @@
 
 package com.dajudge.proxybase;
 
+import com.dajudge.proxybase.ProxyContextFactory.ProxyContext;
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
 import com.dajudge.proxybase.config.DownstreamConfig;
 import com.dajudge.proxybase.config.Endpoint;
@@ -41,15 +42,15 @@ class DownstreamChannelFactory {
     Sink<ByteBuf> create(
             final String channelId,
             final Sink<ByteBuf> upstreamSink,
-            final FilterPairFactory<ByteBuf> filterPairFactory,
+            final ProxyContextFactory proxyContextFactory,
             final KeyStoreWrapper keyStoreWrapper
     ) {
-        final FilterPairFactory.FilterPair<ByteBuf> filterPair = filterPairFactory.createFilterPair();
-        return filterPair.downstreamFilter(new DownstreamClient(
+        final ProxyContext proxyContext = proxyContextFactory.createProxyContext();
+        return proxyContext.downstreamFilter(new DownstreamClient(
                 channelId,
                 endpoint,
                 sslConfig,
-                filterPair.upstreamFilter(upstreamSink),
+                proxyContext.upstreamFilter(upstreamSink),
                 downstreamWorkerGroup,
                 keyStoreWrapper
         ));

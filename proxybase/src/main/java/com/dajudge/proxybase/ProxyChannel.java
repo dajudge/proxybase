@@ -46,7 +46,7 @@ public class ProxyChannel {
     private final NioEventLoopGroup upstreamWorkerGroup;
     private final DownstreamChannelFactory downstreamSinkFactory;
     private final CertificateAuthority certificateAuthority;
-    private final FilterPairFactory<ByteBuf> filterPairFactory;
+    private final ProxyContextFactory proxyContextFactory;
     private Channel channel;
 
     ProxyChannel(
@@ -56,7 +56,7 @@ public class ProxyChannel {
             final NioEventLoopGroup upstreamWorkerGroup,
             final DownstreamChannelFactory downstreamSinkFactory,
             final CertificateAuthority certificateAuthority,
-            final FilterPairFactory<ByteBuf> filterPairFactory
+            final ProxyContextFactory proxyContextFactory
     ) {
         this.endpoint = endpoint;
         this.sslConfig = sslConfig;
@@ -64,7 +64,7 @@ public class ProxyChannel {
         this.upstreamWorkerGroup = upstreamWorkerGroup;
         this.downstreamSinkFactory = downstreamSinkFactory;
         this.certificateAuthority = certificateAuthority;
-        this.filterPairFactory = filterPairFactory;
+        this.proxyContextFactory = proxyContextFactory;
     }
 
     public void start() {
@@ -114,7 +114,7 @@ public class ProxyChannel {
                 return downstreamSinkFactory.create(
                         channelId,
                         upstreamSink,
-                        filterPairFactory,
+                    proxyContextFactory,
                         getClientKeystore(certSupplier)
                 );
             } catch (final RuntimeException e) {
