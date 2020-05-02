@@ -20,29 +20,45 @@ package com.dajudge.proxybase.config;
 import java.io.InputStream;
 import java.util.function.Supplier;
 
-public class DownstreamConfig {
+public class UpstreamSslConfig {
+    public static final UpstreamSslConfig NO_SSL = new UpstreamSslConfig(
+        false,
+        null,
+        null,
+        null,
+        null,
+        null,
+        false
+    );
+
     private final boolean enabled;
     private final Supplier<InputStream> trustStore;
     private final String trustStorePassword;
-    private final boolean hostnameVerificationEnabled;
+    private final Supplier<InputStream> keyStore;
+    private final String keyStorePassword;
+    private final String keyPassword;
+    private final boolean clientAuthRequired;
 
-    public static final DownstreamConfig DISABLED = new DownstreamConfig(
-            false,
-            null,
-            null,
-            false
-    );
-
-    public DownstreamConfig(
+    public UpstreamSslConfig(
             final boolean enabled,
             final Supplier<InputStream> trustStore,
             final String trustStorePassword,
-            final boolean hostnameVerificationEnabled
+            final Supplier<InputStream> keyStore,
+            final String keyStorePassword,
+            final String keyPassword,
+            final boolean clientAuthRequired
     ) {
         this.enabled = enabled;
         this.trustStore = trustStore;
         this.trustStorePassword = trustStorePassword;
-        this.hostnameVerificationEnabled = hostnameVerificationEnabled;
+        this.keyStore = keyStore;
+        this.keyStorePassword = keyStorePassword;
+        this.keyPassword = keyPassword;
+        this.clientAuthRequired = clientAuthRequired;
+    }
+
+    public boolean isEnabled() {
+        return enabled;
     }
 
     public Supplier<InputStream> getTrustStore() {
@@ -53,11 +69,19 @@ public class DownstreamConfig {
         return trustStorePassword;
     }
 
-    public boolean isEnabled() {
-        return enabled;
+    public Supplier<InputStream> getKeyStore() {
+        return keyStore;
     }
 
-    public boolean isHostnameVerificationEnabled() {
-        return hostnameVerificationEnabled;
+    public String getKeyStorePassword() {
+        return keyStorePassword;
+    }
+
+    public String getKeyPassword() {
+        return keyPassword;
+    }
+
+    public boolean isClientAuthRequired() {
+        return clientAuthRequired;
     }
 }

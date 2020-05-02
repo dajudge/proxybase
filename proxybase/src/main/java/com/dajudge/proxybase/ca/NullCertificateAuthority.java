@@ -23,10 +23,16 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
-public class NullCertificateAuthority implements CertificateAuthority {
+public final class NullCertificateAuthority implements CertificateAuthority {
+
+    public static final CertificateAuthority INSTANCE = new NullCertificateAuthority();
+
+    private NullCertificateAuthority() {
+    }
+
     @Override
     public KeyStoreWrapper createClientCertificate(
-            final UpstreamCertificateSupplier certificateSupplier
+        final UpstreamCertificateSupplier certificateSupplier
     ) {
         try {
             final KeyStore keyStore = KeyStore.getInstance("jks");

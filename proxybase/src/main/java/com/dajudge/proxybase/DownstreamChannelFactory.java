@@ -19,19 +19,19 @@ package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ProxyContextFactory.ProxyContext;
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
-import com.dajudge.proxybase.config.DownstreamConfig;
+import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.Endpoint;
 import io.netty.buffer.ByteBuf;
 import io.netty.channel.EventLoopGroup;
 
 class DownstreamChannelFactory {
     private final Endpoint endpoint;
-    private final DownstreamConfig sslConfig;
+    private final DownstreamSslConfig sslConfig;
     private final EventLoopGroup downstreamWorkerGroup;
 
     DownstreamChannelFactory(
             final Endpoint endpoint,
-            final DownstreamConfig sslConfig,
+            final DownstreamSslConfig sslConfig,
             final EventLoopGroup downstreamWorkerGroup
     ) {
         this.endpoint = endpoint;
@@ -42,17 +42,17 @@ class DownstreamChannelFactory {
     Sink<ByteBuf> create(
             final String channelId,
             final Sink<ByteBuf> upstreamSink,
-            final ProxyContextFactory proxyContextFactory,
+            final ProxyContext proxyContext,
             final KeyStoreWrapper keyStoreWrapper
     ) {
-        final ProxyContext proxyContext = proxyContextFactory.createProxyContext();
         return proxyContext.downstreamFilter(new DownstreamClient(
-                channelId,
-                endpoint,
-                sslConfig,
-                proxyContext.upstreamFilter(upstreamSink),
-                downstreamWorkerGroup,
-                keyStoreWrapper
+            channelId,
+            endpoint,
+            sslConfig,
+            proxyContext.upstreamFilter(upstreamSink),
+            downstreamWorkerGroup,
+            keyStoreWrapper,
+            proxyContext::customizeDownstreamPipeline
         ));
     }
 }

@@ -18,12 +18,32 @@
 package com.dajudge.proxybase;
 
 import io.netty.buffer.ByteBuf;
+import io.netty.channel.ChannelPipeline;
 
 public interface ProxyContextFactory {
+
     interface ProxyContext {
+
+        void customizeDownstreamPipeline(ChannelPipeline pipeline);
+
+        void customizeUpstreamPipeline(ChannelPipeline pipeline);
+
         Sink<ByteBuf> downstreamFilter(Sink<ByteBuf> downstream);
 
         Sink<ByteBuf> upstreamFilter(Sink<ByteBuf> upstream);
+    }
+
+    abstract class AbstractProxyContext implements ProxyContext {
+
+        @Override
+        public void customizeDownstreamPipeline(ChannelPipeline pipeline) {
+            // Don't customize
+        }
+
+        @Override
+        public void customizeUpstreamPipeline(ChannelPipeline pipeline) {
+            // Don't customize
+        }
     }
 
     ProxyContext createProxyContext();

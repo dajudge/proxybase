@@ -18,7 +18,7 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
-import com.dajudge.proxybase.config.DownstreamConfig;
+import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.Endpoint;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.SslHandler;
@@ -39,7 +39,7 @@ class ClientSslHandlerFactory {
     private static final Logger LOG = LoggerFactory.getLogger(ClientSslHandlerFactory.class);
 
     static ChannelHandler createHandler(
-            final DownstreamConfig config,
+            final DownstreamSslConfig config,
             final Endpoint endpoint,
             final KeyStoreWrapper keyStore
     ) {
@@ -49,7 +49,7 @@ class ClientSslHandlerFactory {
     }
 
     private static ChannelHandler createHandlerInternal(
-            final DownstreamConfig config,
+            final DownstreamSslConfig config,
             final Endpoint endpoint,
             final KeyStoreWrapper keyStore
     ) {
@@ -82,10 +82,10 @@ class ClientSslHandlerFactory {
         }
     }
 
-    private static List<X509TrustManager> createDefaultTrustManagers(final DownstreamConfig downstreamConfig) {
+    private static List<X509TrustManager> createDefaultTrustManagers(final DownstreamSslConfig downstreamSslConfig) {
         return Stream.of((DefaultTrustManagerFactory.createTrustManagers(
-                downstreamConfig.getTrustStore(),
-                downstreamConfig.getTrustStorePassword().toCharArray()
+                downstreamSslConfig.getTrustStore(),
+                downstreamSslConfig.getTrustStorePassword().toCharArray()
         ))).map(it -> (X509TrustManager) it).collect(toList());
     }
 }

@@ -18,8 +18,8 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ca.CertificateAuthority;
-import com.dajudge.proxybase.config.DownstreamConfig;
-import com.dajudge.proxybase.config.UpstreamConfig;
+import com.dajudge.proxybase.config.DownstreamSslConfig;
+import com.dajudge.proxybase.config.UpstreamSslConfig;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -30,18 +30,18 @@ import static java.util.stream.Collectors.toList;
 
 public abstract class ProxyApplication {
     private static final Logger LOG = LoggerFactory.getLogger(ProxyApplication.class);
-    private final UpstreamConfig upstreamConfig;
-    private final DownstreamConfig downstreamConfig;
+    private final UpstreamSslConfig upstreamSslConfig;
+    private final DownstreamSslConfig downstreamSslConfig;
     private final CertificateAuthority certificateAuthority;
     private Runnable shutdownRunnable;
 
     protected ProxyApplication(
-            final UpstreamConfig upstreamConfig,
-            final DownstreamConfig downstreamConfig,
+            final UpstreamSslConfig upstreamSslConfig,
+            final DownstreamSslConfig downstreamSslConfig,
             final CertificateAuthority certificateAuthority
     ) {
-        this.upstreamConfig = upstreamConfig;
-        this.downstreamConfig = downstreamConfig;
+        this.upstreamSslConfig = upstreamSslConfig;
+        this.downstreamSslConfig = downstreamSslConfig;
         this.certificateAuthority = certificateAuthority;
     }
 
@@ -60,8 +60,8 @@ public abstract class ProxyApplication {
                 downstreamWorkerGroup,
                 serverWorkerGroup,
                 upstreamWorkerGroup,
-                upstreamConfig,
-                downstreamConfig,
+            upstreamSslConfig,
+            downstreamSslConfig,
                 certificateAuthority
         );
         final Collection<ProxyChannel> proxyChannels = initializeProxyChannels(proxyChannelFactory);

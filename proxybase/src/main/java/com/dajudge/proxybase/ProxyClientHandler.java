@@ -25,6 +25,8 @@ import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
+import static com.dajudge.proxybase.LogHelper.withChannelId;
+
 class ProxyClientHandler extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ProxyClientHandler.class);
     private final String channelId;
@@ -40,7 +42,7 @@ class ProxyClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void channelRead(final ChannelHandlerContext ctx, final Object msg) {
-        LogHelper.withChannelId(channelId, () -> {
+        withChannelId(channelId, () -> {
             final ByteBuf m = (ByteBuf) msg;
             LOG.trace("Received {} bytes from downstream.", m.readableBytes());
             try {
@@ -67,7 +69,7 @@ class ProxyClientHandler extends ChannelInboundHandlerAdapter {
 
     @Override
     public void exceptionCaught(final ChannelHandlerContext ctx, final Throwable cause) {
-        LogHelper.withChannelId(channelId, () -> {
+        withChannelId(channelId, () -> {
             LOG.debug("Uncaught exception processing message from downstream. Killing channel.", cause);
             ctx.close();
         });

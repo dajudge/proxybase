@@ -33,6 +33,7 @@ import java.security.cert.X509Certificate;
 import java.util.function.Function;
 
 import static com.dajudge.proxybase.LogHelper.withChannelId;
+import static com.dajudge.proxybase.ProxyChannel.UPSTREAM_SSL_HANDLER;
 
 class ForwardingInboundHandler extends ChannelInboundHandlerAdapter {
     private static final Logger LOG = LoggerFactory.getLogger(ForwardingInboundHandler.class);
@@ -51,7 +52,7 @@ class ForwardingInboundHandler extends ChannelInboundHandlerAdapter {
     @Override
     public void channelRegistered(final ChannelHandlerContext ctx) {
         final UpstreamCertificateSupplier certSupplier = () -> {
-            final ChannelHandler sslHandler = ctx.channel().pipeline().get("ssl");
+            final ChannelHandler sslHandler = ctx.channel().pipeline().get(UPSTREAM_SSL_HANDLER);
             if (sslHandler instanceof SslHandler) {
                 final SSLSession session = ((SslHandler) sslHandler).engine().getSession();
                 final Certificate[] clientCerts = session.getPeerCertificates();

@@ -18,7 +18,7 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
-import com.dajudge.proxybase.config.DownstreamConfig;
+import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.Endpoint;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.buffer.ByteBuf;
@@ -28,7 +28,11 @@ import io.netty.channel.socket.nio.NioSocketChannel;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.util.function.Consumer;
+
 import static com.dajudge.proxybase.ClientSslHandlerFactory.createHandler;
+import static com.dajudge.proxybase.ProxyChannel.DOWNSTREAM_INBOUND_HANDLER;
+import static com.dajudge.proxybase.ProxyChannel.DOWNSTREAM_SSL_HANDLER;
 import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 
 
@@ -37,14 +41,16 @@ class DownstreamClient implements Sink<ByteBuf> {
     private final Channel channel;
 
     DownstreamClient(
-            final String channelId,
-            final Endpoint endpoint,
-            final DownstreamConfig sslConfig,
-            final Sink<ByteBuf> messageSink,
-            final EventLoopGroup workerGroup,
-            final KeyStoreWrapper keyStore
+        final String channelId,
+        final Endpoint endpoint,
+        final DownstreamSslConfig sslConfig,
+        final Sink<ByteBuf> messageSink,
+        final EventLoopGroup workerGroup,
+        final KeyStoreWrapper keyStore,
+        final Consumer<ChannelPipeline> pipelineCustomizer
     ) {
         final ChannelHandler sslHandler = createHandler(sslConfig, endpoint, keyStore);
+        final ProxyClientHandler inboundHandler = new ProxyClientHandler(channelId, messageSink);
         try {
             channel = new Bootstrap()
                     .group(workerGroup)
@@ -54,8 +60,9 @@ class DownstreamClient implements Sink<ByteBuf> {
                         @Override
                         public void initChannel(SocketChannel ch) {
                             final ChannelPipeline pipeline = ch.pipeline();
-                            pipeline.addLast(sslHandler);
-                            pipeline.addLast(new ProxyClientHandler(channelId, messageSink));
+                            pipeline.addLast(DOWNSTREAM_SSL_HANDLER, sslHandler);
+                            pipeline.addLast(DOWNSTREAM_INBOUND_HANDLER, inboundHandler);
+                            pipelineCustomizer.accept(pipeline);
                         }
                     })
                     .connect(endpoint.getHost(), endpoint.getPort()).sync().channel();
