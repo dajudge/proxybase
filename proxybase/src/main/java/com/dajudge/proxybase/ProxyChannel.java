@@ -86,7 +86,7 @@ public class ProxyChannel<UI, UO, DI, DO> {
                     .childHandler(createProxyInitializer(sslConfig))
                     .option(ChannelOption.SO_BACKLOG, 128)
                     .childOption(ChannelOption.SO_KEEPALIVE, true)
-                    .bind(endpoint.getPort())
+                    .bind(endpoint.getHost(), endpoint.getPort())
                     .sync()
                     .channel();
         } catch (final InterruptedException e) {
@@ -155,8 +155,8 @@ public class ProxyChannel<UI, UO, DI, DO> {
         return ((InetSocketAddress) channel.localAddress()).getPort();
     }
 
-    public String getHost() {
-        return endpoint.getHost();
+    public String getBindAddress() {
+        return ((InetSocketAddress) channel.localAddress()).getHostName();
     }
 
 }
