@@ -17,85 +17,48 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.ca.CertificateAuthority;
-import com.dajudge.proxybase.config.DownstreamSslConfig;
-import com.dajudge.proxybase.config.UpstreamSslConfig;
-import io.netty.buffer.ByteBuf;
+import io.netty.channel.Channel;
 import io.netty.channel.nio.NioEventLoopGroup;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import java.net.InetSocketAddress;
+import java.util.ArrayList;
 import java.util.Collection;
+import java.util.concurrent.TimeUnit;
+import java.util.function.Consumer;
 
-import static java.util.stream.Collectors.toList;
-
-public abstract class ProxyApplication<UI, UO, DI, DO> {
+public class ProxyApplication implements AutoCloseable {
+    public static final String LOGGING_CONTEXT_HANDLER = ProxyApplication.class.getName() + "#loggingContext";
     private static final Logger LOG = LoggerFactory.getLogger(ProxyApplication.class);
-    private final UpstreamSslConfig upstreamSslConfig;
-    private final DownstreamSslConfig downstreamSslConfig;
-    private final CertificateAuthority certificateAuthority;
-    private Runnable shutdownRunnable;
+    private final NioEventLoopGroup serverGroup;
+    private final NioEventLoopGroup upstreamGroup;
+    private final NioEventLoopGroup downstreamGroup;
+    private final Collection<Channel> serverChannels = new ArrayList<>();
 
-    protected ProxyApplication(
-            final UpstreamSslConfig upstreamSslConfig,
-            final DownstreamSslConfig downstreamSslConfig,
-            final CertificateAuthority certificateAuthority
-    ) {
-        this.upstreamSslConfig = upstreamSslConfig;
-        this.downstreamSslConfig = downstreamSslConfig;
-        this.certificateAuthority = certificateAuthority;
+    public ProxyApplication(final Consumer<ProxyChannelFactory> callback) {
+        this.serverGroup = new NioEventLoopGroup();
+        this.upstreamGroup = new NioEventLoopGroup();
+        this.downstreamGroup = new NioEventLoopGroup();
+        final UpstreamChannelFactory upstreamFactory = new UpstreamChannelFactory(serverGroup, upstreamGroup);
+        final DownstreamChannelFactory downstreamFactory = new DownstreamChannelFactory(downstreamGroup);
+        callback.accept(new ProxyChannelFactory(upstreamFactory, downstreamFactory, serverChannels::add));
     }
 
-    public void shutdown() {
-        if (shutdownRunnable == null) {
-            throw new IllegalStateException("must invoke start() first");
-        }
-        shutdownRunnable.run();
-    }
 
-    public ProxyApplication<UI, UO, DI, DO> start() {
-        final NioEventLoopGroup serverWorkerGroup = new NioEventLoopGroup();
-        final NioEventLoopGroup upstreamWorkerGroup = new NioEventLoopGroup();
-        final NioEventLoopGroup downstreamWorkerGroup = new NioEventLoopGroup();
-        final ProxyChannelFactory<UI, UO, DI, DO> proxyChannelFactory = new ProxyChannelFactory<>(
-                downstreamWorkerGroup,
-                serverWorkerGroup,
-                upstreamWorkerGroup,
-            upstreamSslConfig,
-            downstreamSslConfig,
-                certificateAuthority
-        );
-        final Collection<ProxyChannel<UI, UO, DI, DO>> proxyChannels =
-                initializeProxyChannels(proxyChannelFactory);
-        shutdownRunnable = () -> {
-            proxyChannels.stream()
-                    .map(ProxyChannel::close)
-                    .collect(toList())
-                    .forEach(future -> {
-                        try {
-                            future.sync();
-                        } catch (final Exception e) {
-                            LOG.error("Failed to sync with proxy channel", e);
-                        }
-                    });
-            serverWorkerGroup.shutdownGracefully();
-            upstreamWorkerGroup.shutdownGracefully();
-            downstreamWorkerGroup.shutdownGracefully();
-        };
-        return this;
-    }
-
-    protected abstract Collection<ProxyChannel<UI, UO, DI, DO>> initializeProxyChannels(
-            final ProxyChannelFactory<UI, UO, DI, DO> proxyChannelFactory
-    );
-
-    public abstract class SimpleProxyApplication extends ProxyApplication<ByteBuf, ByteBuf, ByteBuf, ByteBuf> {
-        protected SimpleProxyApplication(
-                final UpstreamSslConfig upstreamSslConfig,
-                final DownstreamSslConfig downstreamSslConfig,
-                final CertificateAuthority certificateAuthority
-        ) {
-            super(upstreamSslConfig, downstreamSslConfig, certificateAuthority);
-        }
+    @Override
+    public void close() {
+        serverChannels.forEach(ch -> {
+            final InetSocketAddress address = (InetSocketAddress) ch.localAddress();
+            try {
+                ch.close().await(5, TimeUnit.SECONDS);
+                LOG.debug("Server channel closed: {}:{}", address.getHostString(), address.getPort());
+            } catch (final InterruptedException e) {
+                LOG.error("Failed to close server channel: {}:{}", address.getHostString(), address.getPort(), e);
+            }
+        });
+        serverGroup.shutdownGracefully();
+        upstreamGroup.shutdownGracefully();
+        downstreamGroup.shutdownGracefully();
     }
 }

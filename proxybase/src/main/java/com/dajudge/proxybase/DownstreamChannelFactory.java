@@ -17,43 +17,60 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.ca.KeyStoreWrapper;
-import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.Endpoint;
-import io.netty.channel.ChannelPipeline;
-import io.netty.channel.EventLoopGroup;
+import io.netty.bootstrap.Bootstrap;
+import io.netty.channel.Channel;
+import io.netty.channel.ChannelInitializer;
+import io.netty.channel.nio.NioEventLoopGroup;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.channel.socket.nio.NioSocketChannel;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.function.Consumer;
 
-class DownstreamChannelFactory<I, O> {
-    private final Endpoint endpoint;
-    private final DownstreamSslConfig sslConfig;
-    private final EventLoopGroup downstreamWorkerGroup;
+import static io.netty.channel.ChannelOption.SO_KEEPALIVE;
 
-    DownstreamChannelFactory(
-            final Endpoint endpoint,
-            final DownstreamSslConfig sslConfig,
-            final EventLoopGroup downstreamWorkerGroup
-    ) {
-        this.endpoint = endpoint;
-        this.sslConfig = sslConfig;
-        this.downstreamWorkerGroup = downstreamWorkerGroup;
+public class DownstreamChannelFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(DownstreamChannelFactory.class);
+    private final NioEventLoopGroup workerGroup;
+
+    public DownstreamChannelFactory(final NioEventLoopGroup workerGroup) {
+        this.workerGroup = workerGroup;
     }
 
-    Sink<O> create(
-            final String channelId,
-            final Sink<I> upstreamSink,
-            final KeyStoreWrapper keyStoreWrapper,
-            final Consumer<ChannelPipeline> pipelineCustomizer
+    public Channel create(
+            final Endpoint endpoint,
+            final Consumer<SocketChannel> initializer
     ) {
-        return new DownstreamClient<>(
-                channelId,
-                endpoint,
-                sslConfig,
-                upstreamSink,
-                downstreamWorkerGroup,
-                keyStoreWrapper,
-                pipelineCustomizer
-        );
+        try {
+            final Channel channel = new Bootstrap()
+                    .group(workerGroup)
+                    .channel(NioSocketChannel.class)
+                    .option(SO_KEEPALIVE, true)
+                    .handler(new ChannelInitializer<SocketChannel>() {
+                        @Override
+                        protected void initChannel(final SocketChannel ch) {
+                            initializer.accept(ch);
+                        }
+                    })
+                    .connect(endpoint.getHost(), endpoint.getPort())
+                    .sync()
+                    .channel();
+            channel.closeFuture().addListener(future -> {
+                if (future.isSuccess()) {
+                    LOG.debug("Closed downstream channel for {}:{}", endpoint.getHost(), endpoint.getPort());
+                } else {
+                    LOG.error("Failed to close downstream channel for {}:{}",
+                            endpoint.getHost(),
+                            endpoint.getPort(),
+                            future.cause());
+                }
+            });
+            LOG.trace("Downstream channel established: {}", endpoint);
+            return channel;
+        } catch (final InterruptedException e) {
+            throw new RuntimeException("Failed to establish downstream channel: " + endpoint, e);
+        }
     }
 }

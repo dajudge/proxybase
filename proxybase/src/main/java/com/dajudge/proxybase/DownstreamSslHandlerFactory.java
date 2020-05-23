@@ -33,18 +33,19 @@ import java.security.UnrecoverableKeyException;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.dajudge.proxybase.DefaultTrustManagerFactory.createTrustManagers;
 import static java.util.stream.Collectors.toList;
 
-class ClientSslHandlerFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(ClientSslHandlerFactory.class);
+public class DownstreamSslHandlerFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(DownstreamSslHandlerFactory.class);
 
-    static ChannelHandler createHandler(
+    public static ChannelHandler createDownstreamSslHandler(
             final DownstreamSslConfig config,
-            final Endpoint endpoint,
+            final Endpoint downstream,
             final KeyStoreWrapper keyStore
     ) {
         return config.isEnabled()
-                ? createHandlerInternal(config, endpoint, keyStore)
+                ? createHandlerInternal(config, downstream, keyStore)
                 : new NullChannelHandler();
     }
 
@@ -54,7 +55,7 @@ class ClientSslHandlerFactory {
             final KeyStoreWrapper keyStore
     ) {
         try {
-            LOG.info("Creating client SSL handler for {}", endpoint);
+            LOG.info("Creating downstream SSL handler for {}", endpoint);
             final SSLContext clientContext = SSLContext.getInstance("TLS");
             final HostnameCheck hostnameCheck = config.isHostnameVerificationEnabled()
                     ? new HttpClientHostnameCheck(endpoint.getHost())
@@ -83,7 +84,7 @@ class ClientSslHandlerFactory {
     }
 
     private static List<X509TrustManager> createDefaultTrustManagers(final DownstreamSslConfig downstreamSslConfig) {
-        return Stream.of((DefaultTrustManagerFactory.createTrustManagers(
+        return Stream.of((createTrustManagers(
                 downstreamSslConfig.getTrustStore(),
                 downstreamSslConfig.getTrustStorePassword().toCharArray()
         ))).map(it -> (X509TrustManager) it).collect(toList());

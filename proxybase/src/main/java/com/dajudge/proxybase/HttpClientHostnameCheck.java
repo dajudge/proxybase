@@ -109,8 +109,9 @@ class HttpClientHostnameCheck implements HostnameCheck {
             return new Certificate[0];
         }
 
+        @SuppressWarnings("deprecation") // Can't help it
         @Override
-        public javax.security.cert.X509Certificate[] getPeerCertificateChain() throws SSLPeerUnverifiedException {
+        public javax.security.cert.X509Certificate[] getPeerCertificateChain() {
             return new javax.security.cert.X509Certificate[0];
         }
 

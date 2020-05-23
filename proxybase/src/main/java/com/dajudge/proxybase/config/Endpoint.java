@@ -17,6 +17,8 @@
 
 package com.dajudge.proxybase.config;
 
+import java.util.Objects;
+
 import static java.lang.String.format;
 
 public class Endpoint {
@@ -39,5 +41,19 @@ public class Endpoint {
     @Override
     public String toString() {
         return format("%s:%d", host, port);
+    }
+
+    @Override
+    public boolean equals(final Object o) {
+        if (this == o) return true;
+        if (o == null || getClass() != o.getClass()) return false;
+        final Endpoint endpoint = (Endpoint) o;
+        return port == endpoint.port &&
+                Objects.equals(host, endpoint.host);
+    }
+
+    @Override
+    public int hashCode() {
+        return Objects.hash(host, port);
     }
 }

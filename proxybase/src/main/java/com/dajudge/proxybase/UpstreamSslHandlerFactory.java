@@ -33,10 +33,10 @@ import java.security.NoSuchAlgorithmException;
 import static com.dajudge.proxybase.DefaultKeyManagerFactory.createKeyManagers;
 import static com.dajudge.proxybase.DefaultTrustManagerFactory.createTrustManagers;
 
-class ProxySslHandlerFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(ProxySslHandlerFactory.class);
+public class UpstreamSslHandlerFactory {
+    private static final Logger LOG = LoggerFactory.getLogger(UpstreamSslHandlerFactory.class);
 
-    static ChannelHandler createSslHandler(final UpstreamSslConfig config) {
+    public static ChannelHandler createUpstreamSslHandler(final UpstreamSslConfig config) {
         return config.isEnabled()
                 ? createHandlerInternal(config)
                 : new NullChannelHandler();

@@ -17,60 +17,70 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.ca.CertificateAuthority;
-import com.dajudge.proxybase.config.DownstreamSslConfig;
 import com.dajudge.proxybase.config.Endpoint;
-import com.dajudge.proxybase.config.UpstreamSslConfig;
-import io.netty.channel.nio.NioEventLoopGroup;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import io.netty.channel.Channel;
+import io.netty.channel.socket.SocketChannel;
 
-public class ProxyChannelFactory<UI, UO, DI, DO> {
-    private static final Logger LOG = LoggerFactory.getLogger(ProxyChannelFactory.class);
-    private final NioEventLoopGroup downstreamWorkerGroup;
-    private final NioEventLoopGroup serverWorkerGroup;
-    private final NioEventLoopGroup upstreamWorkerGroup;
-    private final UpstreamSslConfig upstreamSslConfig;
-    private final DownstreamSslConfig downstreamSslConfig;
-    private final CertificateAuthority certificateAuthority;
+import java.util.UUID;
+import java.util.function.Consumer;
+
+import static com.dajudge.proxybase.ProxyApplication.LOGGING_CONTEXT_HANDLER;
+
+public class ProxyChannelFactory {
+    private final UpstreamChannelFactory upstreamFactory;
+    private final DownstreamChannelFactory downstreamFactory;
+    private final Consumer<Channel> serverChannelRegistry;
 
     ProxyChannelFactory(
-            final NioEventLoopGroup downstreamWorkerGroup,
-            final NioEventLoopGroup serverWorkerGroup,
-            final NioEventLoopGroup upstreamWorkerGroup,
-            final UpstreamSslConfig upstreamSslConfig,
-            final DownstreamSslConfig downstreamSslConfig,
-            final CertificateAuthority certificateAuthority
+            final UpstreamChannelFactory upstreamFactory,
+            final DownstreamChannelFactory downstreamFactory,
+            final Consumer<Channel> serverChannelRegistry
     ) {
-        this.downstreamWorkerGroup = downstreamWorkerGroup;
-        this.serverWorkerGroup = serverWorkerGroup;
-        this.upstreamWorkerGroup = upstreamWorkerGroup;
-        this.upstreamSslConfig = upstreamSslConfig;
-        this.downstreamSslConfig = downstreamSslConfig;
-        this.certificateAuthority = certificateAuthority;
+        this.upstreamFactory = upstreamFactory;
+        this.downstreamFactory = downstreamFactory;
+        this.serverChannelRegistry = serverChannelRegistry;
     }
 
-    public ProxyChannel<UI, UO, DI, DO> createProxyChannel(
+    public void createProxyChannel(
             final Endpoint upstreamEndpoint,
             final Endpoint downstreamEndpoint,
-            final ProxyContextFactory<UI, UO, DI, DO> proxyContextFactory
+            final ProxyChannelInitializer initializer
     ) {
-        final DownstreamChannelFactory<DI, DO> downstreamSinkFactory = new DownstreamChannelFactory<>(
-                downstreamEndpoint,
-                downstreamSslConfig,
-                downstreamWorkerGroup
+        serverChannelRegistry.accept(
+                upstreamFactory.create(
+                        upstreamEndpoint,
+                        upstreamChannel -> downstreamFactory.create(
+                                downstreamEndpoint,
+                                downstreamChannel -> initProxyChannel(
+                                        initializer,
+                                        upstreamChannel,
+                                        downstreamChannel
+                                )
+                        )
+                )
         );
-        final ProxyChannel<UI, UO, DI, DO> proxyChannel = new ProxyChannel<>(
-                upstreamEndpoint,
-                upstreamSslConfig,
-                serverWorkerGroup,
-                upstreamWorkerGroup,
-                downstreamSinkFactory,
-                certificateAuthority,
-                proxyContextFactory
-        );
-        LOG.info("Proxying {} as {}", downstreamEndpoint, upstreamEndpoint);
-        return proxyChannel;
     }
 
+    private void initProxyChannel(
+            final ProxyChannelInitializer initializer,
+            final SocketChannel upstreamChannel,
+            final SocketChannel downstreamChannel
+    ) {
+        final String channelId = UUID.randomUUID().toString();
+        upstreamChannel.pipeline().addFirst(
+                LOGGING_CONTEXT_HANDLER,
+                new LoggingContextHandler(channelId, "upstream")
+        );
+        downstreamChannel.pipeline().addFirst(
+                LOGGING_CONTEXT_HANDLER,
+                new LoggingContextHandler(channelId, "downstream")
+        );
+        initializer.initialize(upstreamChannel, downstreamChannel);
+        downstreamChannel.closeFuture().addListener(future -> upstreamChannel.close());
+        upstreamChannel.closeFuture().addListener(future -> downstreamChannel.close());
+    }
+
+    public interface ProxyChannelInitializer {
+        void initialize(Channel upstreamChannel, Channel downstreamChannel);
+    }
 }
