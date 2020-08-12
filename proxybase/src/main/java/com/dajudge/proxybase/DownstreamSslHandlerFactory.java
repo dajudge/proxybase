@@ -55,7 +55,6 @@ public class DownstreamSslHandlerFactory {
             final KeyStoreWrapper keyStore
     ) {
         try {
-            LOG.info("Creating downstream SSL handler for {}", endpoint);
             final SSLContext clientContext = SSLContext.getInstance("TLS");
             final HostnameCheck hostnameCheck = config.isHostnameVerificationEnabled()
                     ? new HttpClientHostnameCheck(endpoint.getHost())
