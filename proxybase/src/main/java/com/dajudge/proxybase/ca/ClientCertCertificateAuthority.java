@@ -30,7 +30,7 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
 
     public ClientCertCertificateAuthority(final ClientCertificateConfig sslConfig) {
         try (final InputStream is = sslConfig.getKeyStore().get()) {
-            final KeyStore keyStore = KeyStore.getInstance("jks");
+            final KeyStore keyStore = KeyStore.getInstance(sslConfig.getType());
             keyStore.load(is, sslConfig.getKeyStorePassword().toCharArray());
             wrapper = new KeyStoreWrapper(keyStore, sslConfig.getKeyPassword());
         } catch (final IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException e) {
@@ -49,8 +49,10 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
         private final Supplier<InputStream> keyStore;
         private final String keyStorePassword;
         private final String keyPassword;
+        private final String type;
 
         public static final ClientCertificateConfig DISABLED = new ClientCertificateConfig(
+                null,
                 null,
                 null,
                 null
@@ -59,11 +61,13 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
         public ClientCertificateConfig(
                 final Supplier<InputStream> keyStore,
                 final String keyStorePassword,
-                final String keyPassword
+                final String keyPassword,
+                final String type
         ) {
             this.keyStore = keyStore;
             this.keyStorePassword = keyStorePassword;
             this.keyPassword = keyPassword;
+            this.type = type;
         }
 
         public Supplier<InputStream> getKeyStore() {
@@ -76,6 +80,10 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
 
         public String getKeyPassword() {
             return keyPassword;
+        }
+
+        public String getType() {
+            return type;
         }
     }
 }

@@ -30,11 +30,12 @@ import java.util.function.Supplier;
 class DefaultTrustManagerFactory {
     static TrustManager[] createTrustManagers(
             final Supplier<InputStream> trustStore,
-            final char[] trustStorePassword
+            final char[] trustStorePassword,
+            final String keyStoreType
     ) {
         try (final InputStream inputStream = trustStore.get()) {
             final TrustManagerFactory factory = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            final KeyStore keystore = KeyStore.getInstance("jks");
+            final KeyStore keystore = KeyStore.getInstance(keyStoreType);
             keystore.load(inputStream, trustStorePassword);
             factory.init(keystore);
             return factory.getTrustManagers();

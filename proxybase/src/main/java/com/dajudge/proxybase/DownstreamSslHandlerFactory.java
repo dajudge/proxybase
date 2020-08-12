@@ -86,7 +86,8 @@ public class DownstreamSslHandlerFactory {
     private static List<X509TrustManager> createDefaultTrustManagers(final DownstreamSslConfig downstreamSslConfig) {
         return Stream.of((createTrustManagers(
                 downstreamSslConfig.getTrustStore(),
-                downstreamSslConfig.getTrustStorePassword().toCharArray()
+                downstreamSslConfig.getTrustStorePassword().toCharArray(),
+                downstreamSslConfig.getTrustStoreType()
         ))).map(it -> (X509TrustManager) it).collect(toList());
     }
 }

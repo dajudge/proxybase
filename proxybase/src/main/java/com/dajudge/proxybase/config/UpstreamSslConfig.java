@@ -28,6 +28,8 @@ public class UpstreamSslConfig {
         null,
         null,
         null,
+        null,
+        null,
         false
     );
 
@@ -38,22 +40,28 @@ public class UpstreamSslConfig {
     private final String keyStorePassword;
     private final String keyPassword;
     private final boolean clientAuthRequired;
+    private final String keyStoreType;
+    private final String trustStoreType;
 
     public UpstreamSslConfig(
             final boolean enabled,
             final Supplier<InputStream> trustStore,
             final String trustStorePassword,
+            final String trustStoreType,
             final Supplier<InputStream> keyStore,
             final String keyStorePassword,
             final String keyPassword,
+            final String keyStoreType,
             final boolean clientAuthRequired
     ) {
         this.enabled = enabled;
         this.trustStore = trustStore;
         this.trustStorePassword = trustStorePassword;
+        this.trustStoreType = trustStoreType;
         this.keyStore = keyStore;
         this.keyStorePassword = keyStorePassword;
         this.keyPassword = keyPassword;
+        this.keyStoreType = keyStoreType;
         this.clientAuthRequired = clientAuthRequired;
     }
 
@@ -83,5 +91,13 @@ public class UpstreamSslConfig {
 
     public boolean isClientAuthRequired() {
         return clientAuthRequired;
+    }
+
+    public String getKeyStoreType() {
+        return keyStoreType;
+    }
+
+    public String getTrustStoreType() {
+        return trustStoreType;
     }
 }

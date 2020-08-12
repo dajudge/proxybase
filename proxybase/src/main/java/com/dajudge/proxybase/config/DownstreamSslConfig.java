@@ -24,10 +24,12 @@ public class DownstreamSslConfig {
     private final boolean enabled;
     private final Supplier<InputStream> trustStore;
     private final String trustStorePassword;
+    private final String trustSToreType;
     private final boolean hostnameVerificationEnabled;
 
     public static final DownstreamSslConfig NO_SSL = new DownstreamSslConfig(
             false,
+            null,
             null,
             null,
             false
@@ -37,11 +39,13 @@ public class DownstreamSslConfig {
             final boolean enabled,
             final Supplier<InputStream> trustStore,
             final String trustStorePassword,
+            final String trustStoreType,
             final boolean hostnameVerificationEnabled
     ) {
         this.enabled = enabled;
         this.trustStore = trustStore;
         this.trustStorePassword = trustStorePassword;
+        this.trustSToreType = trustStoreType;
         this.hostnameVerificationEnabled = hostnameVerificationEnabled;
     }
 
@@ -59,5 +63,9 @@ public class DownstreamSslConfig {
 
     public boolean isHostnameVerificationEnabled() {
         return hostnameVerificationEnabled;
+    }
+
+    public String getTrustStoreType() {
+        return trustSToreType;
     }
 }

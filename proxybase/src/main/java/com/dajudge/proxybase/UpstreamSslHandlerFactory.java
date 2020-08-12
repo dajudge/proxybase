@@ -48,12 +48,14 @@ public class UpstreamSslHandlerFactory {
             final SSLContext clientContext = SSLContext.getInstance("TLS");
             final TrustManager[] trustManagers = createTrustManagers(
                     config.getTrustStore(),
-                    config.getTrustStorePassword().toCharArray()
+                    config.getTrustStorePassword().toCharArray(),
+                    config.getTrustStoreType()
             );
             final KeyManager[] keyManagers = createKeyManagers(
                     config.getKeyStore(),
                     config.getKeyStorePassword().toCharArray(),
-                    config.getKeyPassword().toCharArray()
+                    config.getKeyPassword().toCharArray(),
+                    config.getKeyStoreType()
             );
             clientContext.init(keyManagers, trustManagers, null);
             final SSLEngine engine = clientContext.createSSLEngine();

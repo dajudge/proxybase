@@ -32,11 +32,12 @@ class DefaultKeyManagerFactory {
     static KeyManager[] createKeyManagers(
             final Supplier<InputStream> keyStore,
             final char[] keyStorePassword,
-            final char[] keyPassword
+            final char[] keyPassword,
+            final String keyStoreType
     ) {
         try (final InputStream inputStream = keyStore.get()) {
             final KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final KeyStore keystore = KeyStore.getInstance("jks");
+            final KeyStore keystore = KeyStore.getInstance(keyStoreType);
             keystore.load(inputStream, keyStorePassword);
             factory.init(keystore, keyPassword);
             return factory.getKeyManagers();
