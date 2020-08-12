@@ -67,7 +67,10 @@ public class DownstreamSslHandlerFactory {
                     KeyManagerFactory.getDefaultAlgorithm()
             );
             if (keyStore != null) {
-                keyManagerFactory.init(keyStore.getKeyStore(), keyStore.getKeyPassword().toCharArray());
+                keyManagerFactory.init(
+                        keyStore.getKeyStore(),
+                        keyStore.getKeyPassword() == null ? null : keyStore.getKeyPassword().toCharArray()
+                );
             }
             final KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
             clientContext.init(keyManagers, trustManagers, null);
