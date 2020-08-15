@@ -21,9 +21,9 @@ import java.security.KeyStore;
 
 public class KeyStoreWrapper {
     private final KeyStore keyStore;
-    private final String keyPassword;
+    private final char[] keyPassword;
 
-    public KeyStoreWrapper(final KeyStore keyStore, final String keyPassword) {
+    public KeyStoreWrapper(final KeyStore keyStore, final char[] keyPassword) {
         this.keyStore = keyStore;
         this.keyPassword = keyPassword;
     }
@@ -33,7 +33,7 @@ public class KeyStoreWrapper {
     }
 
 
-    public String getKeyPassword() {
+    public char[] getKeyPassword() {
         return keyPassword;
     }
 }

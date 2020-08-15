@@ -15,57 +15,25 @@
  *
  */
 
-package com.dajudge.proxybase.config;
-
-import java.io.InputStream;
-import java.util.function.Supplier;
+package com.dajudge.proxybase.certs;
 
 public class DownstreamSslConfig {
-    private final boolean enabled;
-    private final Supplier<InputStream> trustStore;
-    private final String trustStorePassword;
-    private final String trustSToreType;
+    private final KeyStoreConfig trustStore;
     private final boolean hostnameVerificationEnabled;
 
-    public static final DownstreamSslConfig NO_SSL = new DownstreamSslConfig(
-            false,
-            null,
-            null,
-            null,
-            false
-    );
-
     public DownstreamSslConfig(
-            final boolean enabled,
-            final Supplier<InputStream> trustStore,
-            final String trustStorePassword,
-            final String trustStoreType,
+            final KeyStoreConfig trustStore,
             final boolean hostnameVerificationEnabled
     ) {
-        this.enabled = enabled;
         this.trustStore = trustStore;
-        this.trustStorePassword = trustStorePassword;
-        this.trustSToreType = trustStoreType;
         this.hostnameVerificationEnabled = hostnameVerificationEnabled;
     }
 
-    public Supplier<InputStream> getTrustStore() {
+    public KeyStoreConfig getTrustStore() {
         return trustStore;
-    }
-
-    public String getTrustStorePassword() {
-        return trustStorePassword;
-    }
-
-    public boolean isEnabled() {
-        return enabled;
     }
 
     public boolean isHostnameVerificationEnabled() {
         return hostnameVerificationEnabled;
-    }
-
-    public String getTrustStoreType() {
-        return trustSToreType;
     }
 }

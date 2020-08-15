@@ -31,7 +31,7 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
     public ClientCertCertificateAuthority(final ClientCertificateConfig sslConfig) {
         try (final InputStream is = sslConfig.getKeyStore().get()) {
             final KeyStore keyStore = KeyStore.getInstance(sslConfig.getType());
-            keyStore.load(is, sslConfig.getKeyStorePassword().toCharArray());
+            keyStore.load(is, sslConfig.getKeyStorePassword());
             wrapper = new KeyStoreWrapper(keyStore, sslConfig.getKeyPassword());
         } catch (final IOException | KeyStoreException | NoSuchAlgorithmException | CertificateException e) {
             throw new RuntimeException("Failed to load client key store", e);
@@ -47,8 +47,8 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
 
     public static class ClientCertificateConfig {
         private final Supplier<InputStream> keyStore;
-        private final String keyStorePassword;
-        private final String keyPassword;
+        private final char[] keyStorePassword;
+        private final char[] keyPassword;
         private final String type;
 
         public static final ClientCertificateConfig DISABLED = new ClientCertificateConfig(
@@ -60,8 +60,8 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
 
         public ClientCertificateConfig(
                 final Supplier<InputStream> keyStore,
-                final String keyStorePassword,
-                final String keyPassword,
+                final char[] keyStorePassword,
+                final char[] keyPassword,
                 final String type
         ) {
             this.keyStore = keyStore;
@@ -74,11 +74,11 @@ public class ClientCertCertificateAuthority implements CertificateAuthority {
             return keyStore;
         }
 
-        public String getKeyStorePassword() {
+        public char[] getKeyStorePassword() {
             return keyStorePassword;
         }
 
-        public String getKeyPassword() {
+        public char[] getKeyPassword() {
             return keyPassword;
         }
 

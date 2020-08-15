@@ -17,11 +17,9 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.config.UpstreamSslConfig;
+import com.dajudge.proxybase.certs.KeyStoreManager;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.SslHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.KeyManager;
 import javax.net.ssl.SSLContext;
@@ -30,37 +28,23 @@ import javax.net.ssl.TrustManager;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 
-import static com.dajudge.proxybase.DefaultKeyManagerFactory.createKeyManagers;
-import static com.dajudge.proxybase.DefaultTrustManagerFactory.createTrustManagers;
+import static com.dajudge.proxybase.SslUtils.createKeyManagers;
+import static com.dajudge.proxybase.SslUtils.createTrustManagers;
 
 public class UpstreamSslHandlerFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(UpstreamSslHandlerFactory.class);
-
-    public static ChannelHandler createUpstreamSslHandler(final UpstreamSslConfig config) {
-        return config.isEnabled()
-                ? createHandlerInternal(config)
-                : new NullChannelHandler();
-    }
-
-    private static ChannelHandler createHandlerInternal(final UpstreamSslConfig config) {
-        LOG.info("Creating proxy channel SSL handler");
+    public static ChannelHandler createUpstreamSslHandler(
+            final boolean enableClientAuth,
+            final KeyStoreManager trustStoreManager,
+            final KeyStoreManager keyStoreManager
+    ) {
         try {
             final SSLContext clientContext = SSLContext.getInstance("TLS");
-            final TrustManager[] trustManagers = createTrustManagers(
-                    config.getTrustStore(),
-                    config.getTrustStorePassword().toCharArray(),
-                    config.getTrustStoreType()
-            );
-            final KeyManager[] keyManagers = createKeyManagers(
-                    config.getKeyStore(),
-                    config.getKeyStorePassword().toCharArray(),
-                    config.getKeyPassword().toCharArray(),
-                    config.getKeyStoreType()
-            );
+            final TrustManager[] trustManagers = createTrustManagers(trustStoreManager);
+            final KeyManager[] keyManagers = createKeyManagers(keyStoreManager);
             clientContext.init(keyManagers, trustManagers, null);
             final SSLEngine engine = clientContext.createSSLEngine();
             engine.setUseClientMode(false);
-            engine.setNeedClientAuth(config.isClientAuthRequired());
+            engine.setNeedClientAuth(enableClientAuth);
             return new SslHandler(engine);
         } catch (final NoSuchAlgorithmException | KeyManagementException e) {
             throw new RuntimeException("Failed to initialize upstream SSL handler", e);

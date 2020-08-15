@@ -37,7 +37,7 @@ public final class NullCertificateAuthority implements CertificateAuthority {
         try {
             final KeyStore keyStore = KeyStore.getInstance("jks");
             keyStore.load(null, null);
-            return new KeyStoreWrapper(keyStore, "noPassword");
+            return new KeyStoreWrapper(keyStore, "noPassword".toCharArray());
         } catch (final KeyStoreException | IOException | NoSuchAlgorithmException | CertificateException e) {
             throw new RuntimeException("Failed to create empty key store", e);
         }

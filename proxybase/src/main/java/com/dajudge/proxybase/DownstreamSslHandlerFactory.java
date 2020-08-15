@@ -18,12 +18,10 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
-import com.dajudge.proxybase.config.DownstreamSslConfig;
+import com.dajudge.proxybase.certs.KeyStoreManager;
 import com.dajudge.proxybase.config.Endpoint;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.SslHandler;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import javax.net.ssl.*;
 import java.security.KeyManagementException;
@@ -33,34 +31,24 @@ import java.security.UnrecoverableKeyException;
 import java.util.List;
 import java.util.stream.Stream;
 
-import static com.dajudge.proxybase.DefaultTrustManagerFactory.createTrustManagers;
+import static com.dajudge.proxybase.SslUtils.createTrustManagers;
 import static java.util.stream.Collectors.toList;
 
 public class DownstreamSslHandlerFactory {
-    private static final Logger LOG = LoggerFactory.getLogger(DownstreamSslHandlerFactory.class);
-
     public static ChannelHandler createDownstreamSslHandler(
-            final DownstreamSslConfig config,
-            final Endpoint downstream,
-            final KeyStoreWrapper keyStore
-    ) {
-        return config.isEnabled()
-                ? createHandlerInternal(config, downstream, keyStore)
-                : new NullChannelHandler();
-    }
-
-    private static ChannelHandler createHandlerInternal(
-            final DownstreamSslConfig config,
             final Endpoint endpoint,
-            final KeyStoreWrapper keyStore
+            final boolean hostnameVerification,
+            final KeyStoreManager trustStoreManager,
+            final KeyStoreManager keyStoreManager
     ) {
         try {
+            final KeyStoreWrapper keyStore = keyStoreManager.getKeyStore();
             final SSLContext clientContext = SSLContext.getInstance("TLS");
-            final HostnameCheck hostnameCheck = config.isHostnameVerificationEnabled()
+            final HostnameCheck hostnameCheck = hostnameVerification
                     ? new HttpClientHostnameCheck(endpoint.getHost())
                     : HostnameCheck.NULL_VERIFIER;
             final TrustManager[] trustManagers = {
-                    new HostCheckingTrustManager(createDefaultTrustManagers(config), hostnameCheck)
+                    new HostCheckingTrustManager(createDefaultTrustManagers(trustStoreManager), hostnameCheck)
             };
             final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(
                     KeyManagerFactory.getDefaultAlgorithm()
@@ -68,7 +56,7 @@ public class DownstreamSslHandlerFactory {
             if (keyStore != null) {
                 keyManagerFactory.init(
                         keyStore.getKeyStore(),
-                        keyStore.getKeyPassword() == null ? null : keyStore.getKeyPassword().toCharArray()
+                        keyStore.getKeyPassword()
                 );
             }
             final KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
@@ -85,11 +73,8 @@ public class DownstreamSslHandlerFactory {
         }
     }
 
-    private static List<X509TrustManager> createDefaultTrustManagers(final DownstreamSslConfig downstreamSslConfig) {
-        return Stream.of((createTrustManagers(
-                downstreamSslConfig.getTrustStore(),
-                downstreamSslConfig.getTrustStorePassword().toCharArray(),
-                downstreamSslConfig.getTrustStoreType()
-        ))).map(it -> (X509TrustManager) it).collect(toList());
+    private static List<X509TrustManager> createDefaultTrustManagers(final KeyStoreManager trustStoreManager) {
+        return Stream.of((createTrustManagers(trustStoreManager)))
+                .map(it -> (X509TrustManager) it).collect(toList());
     }
 }
