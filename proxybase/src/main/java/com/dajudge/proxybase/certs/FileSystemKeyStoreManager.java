@@ -1,7 +1,22 @@
+/*
+ * Copyright 2019-2020 Alex Stockinger
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ *
+ */
+
 package com.dajudge.proxybase.certs;
 
-import com.dajudge.proxybase.Clock;
-import com.dajudge.proxybase.ca.KeyStoreWrapper;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,11 +25,12 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 import java.util.concurrent.atomic.AtomicBoolean;
+import java.util.function.Supplier;
 
 public class FileSystemKeyStoreManager implements KeyStoreManager {
     private static final Logger LOG = LoggerFactory.getLogger(FileSystemKeyStoreManager.class);
     private final KeyStoreLoader loader;
-    private final Clock clock;
+    private final Supplier<Long> clock;
     private final long updateIntervalMsecs;
     private final Object keyStoreLock = new Object();
     private final Object clockLock = new Object();
@@ -24,7 +40,7 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
 
     public FileSystemKeyStoreManager(
             final KeyStoreLoader loader,
-            final Clock clock,
+            final Supplier<Long> clock,
             final long updateIntervalMsecs
     ) {
         this.loader = loader;
@@ -51,7 +67,7 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
                     keyStore = newKeyStore;
                 }
                 synchronized (clockLock) {
-                    lastUpdate = clock.now();
+                    lastUpdate = clock.get();
                 }
             } catch (final Exception e) {
                 LOG.warn("Failed to reload keystore", e);
@@ -62,7 +78,7 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
 
     private boolean updateIsNecessary() {
         synchronized (clockLock) {
-            return clock.now() - lastUpdate > updateIntervalMsecs;
+            return clock.get() - lastUpdate > updateIntervalMsecs;
         }
     }
 
@@ -72,7 +88,7 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
 
     public static FileSystemKeyStoreManager upstreamKeyStoreManager(
             final UpstreamSslConfig config,
-            final Clock clock
+            final Supplier<Long> clock
     ) {
         return new FileSystemKeyStoreManager(
                 new FileSystemKeyStoreLoader(
@@ -90,7 +106,7 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
 
     public static FileSystemKeyStoreManager upstreamTrustStoreManager(
             final UpstreamSslConfig config,
-            final Clock clock
+            final Supplier<Long> clock
     ) {
         return new FileSystemKeyStoreManager(
                 new FileSystemKeyStoreLoader(
@@ -108,7 +124,7 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
 
     public static FileSystemKeyStoreManager downstreamTrustStoreManager(
             final DownstreamSslConfig config,
-            final Clock clock
+            final Supplier<Long> clock
     ) {
         final KeyStoreConfig keyStore = config.getTrustStore();
         return new FileSystemKeyStoreManager(

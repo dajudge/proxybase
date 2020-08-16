@@ -8,6 +8,7 @@ dependencies {
     implementation libSlf4j
 
     testImplementation 'junit:junit:4.13'
+    testImplementation project(":cautils")
     testImplementation project(":testca")
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
 }

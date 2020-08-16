@@ -17,7 +17,7 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.ca.KeyStoreWrapper;
+import com.dajudge.proxybase.certs.KeyStoreWrapper;
 import com.dajudge.proxybase.certs.KeyStoreManager;
 
 import javax.net.ssl.KeyManagerFactory;

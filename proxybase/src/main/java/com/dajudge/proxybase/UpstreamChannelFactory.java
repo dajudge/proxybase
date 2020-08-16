@@ -17,7 +17,6 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.config.Endpoint;
 import io.netty.bootstrap.ServerBootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelFuture;
@@ -72,9 +71,7 @@ class UpstreamChannelFactory {
 
                             openChildChannels.add(ch);
                             inizializer.accept(ch);
-                            ch.closeFuture().addListener(future -> {
-                                openChildChannels.remove(ch);
-                            });
+                            ch.closeFuture().addListener(future -> openChildChannels.remove(ch));
                         }
                     })
                     .option(ChannelOption.SO_BACKLOG, 128)
@@ -92,7 +89,7 @@ class UpstreamChannelFactory {
     }
 
     private static void closeChildChannels(final List<SocketChannel> openChildChannels) {
-        openChildChannels.stream()
+        new ArrayList<>(openChildChannels).stream()
                 .map(SocketChannel::closeFuture)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toList())

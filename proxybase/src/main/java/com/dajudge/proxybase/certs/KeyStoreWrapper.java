@@ -15,7 +15,7 @@
  *
  */
 
-package com.dajudge.proxybase.ca;
+package com.dajudge.proxybase.certs;
 
 import java.security.KeyStore;
 
