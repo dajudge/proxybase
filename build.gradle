@@ -10,6 +10,10 @@ def buildVersion = versionDetails.isCleanTag && gitVersion().startsWith("release
         : System.currentTimeMillis() + "-SNAPSHOT"
 println "Build version: $buildVersion"
 
+ext {
+    libSlf4j = 'org.slf4j:slf4j-api:1.7.29'
+}
+
 subprojects {
     apply plugin: "java"
     apply plugin: "java-library"

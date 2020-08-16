@@ -24,7 +24,7 @@ public class KeyStoreConfig {
     private final char[] keyPassword;
     private final String keyPasswordPath;
     private final String keyStoreType;
-    private final long updateIntercalMsecs;
+    private final long updateIntervalMsecs;
 
     public KeyStoreConfig(
             final String keyStorePath,
@@ -33,7 +33,7 @@ public class KeyStoreConfig {
             final char[] keyPassword,
             final String keyPasswordPath,
             final String keyStoreType,
-            final long updateIntercalMsecs
+            final long updateIntervalMsecs
     ) {
         this.keyStorePath = keyStorePath;
         this.keyStorePassword = keyStorePassword;
@@ -41,7 +41,7 @@ public class KeyStoreConfig {
         this.keyPassword = keyPassword;
         this.keyPasswordPath = keyPasswordPath;
         this.keyStoreType = keyStoreType;
-        this.updateIntercalMsecs = updateIntercalMsecs;
+        this.updateIntervalMsecs = updateIntervalMsecs;
     }
 
     public String getKeyStorePath() {
@@ -60,8 +60,8 @@ public class KeyStoreConfig {
         return keyStorePasswordPath;
     }
 
-    public long getUpdateIntercalMsecs() {
-        return updateIntercalMsecs;
+    public long getUpdateIntervalMsecs() {
+        return updateIntervalMsecs;
     }
 
     public char[] getKeyPassword() {

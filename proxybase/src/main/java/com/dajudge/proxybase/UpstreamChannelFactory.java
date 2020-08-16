@@ -32,6 +32,7 @@ import org.slf4j.LoggerFactory;
 import java.net.InetSocketAddress;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.function.Consumer;
 import java.util.stream.Collectors;
 
@@ -93,6 +94,7 @@ class UpstreamChannelFactory {
     private static void closeChildChannels(final List<SocketChannel> openChildChannels) {
         openChildChannels.stream()
                 .map(SocketChannel::closeFuture)
+                .filter(Objects::nonNull)
                 .collect(Collectors.toList())
                 .forEach(UpstreamChannelFactory::awaitChildClosed);
     }

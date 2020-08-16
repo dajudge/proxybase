@@ -17,58 +17,39 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.ca.KeyStoreWrapper;
 import com.dajudge.proxybase.certs.KeyStoreManager;
-import com.dajudge.proxybase.config.Endpoint;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.SslHandler;
 
-import javax.net.ssl.*;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLEngine;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 import java.security.KeyManagementException;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
 import java.util.List;
 import java.util.stream.Stream;
 
+import static com.dajudge.proxybase.SslUtils.createKeyManagers;
 import static com.dajudge.proxybase.SslUtils.createTrustManagers;
 import static java.util.stream.Collectors.toList;
 
 public class DownstreamSslHandlerFactory {
     public static ChannelHandler createDownstreamSslHandler(
-            final Endpoint endpoint,
-            final boolean hostnameVerification,
+            final HostnameCheck hostnameCheck,
             final KeyStoreManager trustStoreManager,
             final KeyStoreManager keyStoreManager
     ) {
         try {
-            final KeyStoreWrapper keyStore = keyStoreManager.getKeyStore();
             final SSLContext clientContext = SSLContext.getInstance("TLS");
-            final HostnameCheck hostnameCheck = hostnameVerification
-                    ? new HttpClientHostnameCheck(endpoint.getHost())
-                    : HostnameCheck.NULL_VERIFIER;
-            final TrustManager[] trustManagers = {
+            final X509TrustManager[] trustManagers = {
                     new HostCheckingTrustManager(createDefaultTrustManagers(trustStoreManager), hostnameCheck)
             };
-            final KeyManagerFactory keyManagerFactory = KeyManagerFactory.getInstance(
-                    KeyManagerFactory.getDefaultAlgorithm()
-            );
-            if (keyStore != null) {
-                keyManagerFactory.init(
-                        keyStore.getKeyStore(),
-                        keyStore.getKeyPassword()
-                );
-            }
-            final KeyManager[] keyManagers = keyManagerFactory.getKeyManagers();
-            clientContext.init(keyManagers, trustManagers, null);
-            final SSLEngine engine = clientContext.createSSLEngine(endpoint.getHost(), endpoint.getPort());
+            clientContext.init(createKeyManagers(keyStoreManager), trustManagers, null);
+            final SSLEngine engine = clientContext.createSSLEngine();
             engine.setUseClientMode(true);
             return new SslHandler(engine);
-        } catch (final NoSuchAlgorithmException
-                | KeyManagementException
-                | KeyStoreException
-                | UnrecoverableKeyException e
-        ) {
+        } catch (final NoSuchAlgorithmException | KeyManagementException e) {
             throw new RuntimeException("Failed to initialize downstream SSL handler", e);
         }
     }

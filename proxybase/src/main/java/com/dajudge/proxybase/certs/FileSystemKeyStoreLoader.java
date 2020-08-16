@@ -1,7 +1,6 @@
 package com.dajudge.proxybase.certs;
 
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
-import com.dajudge.proxybase.certs.KeyStoreManager.KeyStoreLoader;
 
 import java.io.File;
 import java.io.FileInputStream;
@@ -15,7 +14,7 @@ import java.security.cert.CertificateException;
 
 import static java.nio.file.Files.readAllBytes;
 
-public class InputStreamKeyStoreLoader implements KeyStoreLoader {
+public class FileSystemKeyStoreLoader implements FileSystemKeyStoreManager.KeyStoreLoader {
     private final String keyStorePath;
     private final char[] keyStorePassword;
     private final String keyStorePasswordPath;
@@ -23,7 +22,7 @@ public class InputStreamKeyStoreLoader implements KeyStoreLoader {
     private final String keyPasswordPath;
     private final String keyStoreType;
 
-    public InputStreamKeyStoreLoader(
+    public FileSystemKeyStoreLoader(
             final String keyStorePath,
             final char[] keyStorePassword,
             final String keyStorePasswordPath,

@@ -1,8 +1,9 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ProxyChannelFactory.ProxyChannelInitializer;
+import com.dajudge.proxybase.TestSslConfiguration.SocketFactory;
+import com.dajudge.proxybase.TestSslConfiguration.SslConfiguration;
 import com.dajudge.proxybase.config.Endpoint;
-import io.netty.channel.ChannelPipeline;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -10,21 +11,48 @@ import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.*;
+import java.security.KeyManagementException;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.UnrecoverableKeyException;
+import java.util.List;
+import java.util.UUID;
 import java.util.function.Consumer;
+import java.util.stream.IntStream;
 
 import static java.nio.charset.StandardCharsets.UTF_8;
+import static java.util.stream.Collectors.joining;
 import static org.junit.Assert.assertEquals;
 
 public abstract class BaseProxyTest {
     private static final Logger LOG = LoggerFactory.getLogger(BaseProxyTest.class);
 
-    private void withDownstreamServer(final Consumer<ServerSocket> consumer) {
-        try (final ServerSocket downstreamServer = new ServerSocket()) {
+    private void withDownstreamServer(
+            final SslConfiguration sslConfig,
+            final Consumer<ServerSocket> consumer,
+            final List<Consumer<Socket>> connectionAssertions
+    ) {
+        try (final ServerSocket downstreamServer = sslConfig.serverSocket()) {
             downstreamServer.bind(new InetSocketAddress("127.0.0.1", 0));
             new Thread(() -> {
                 try {
                     while (true) {
                         final Socket socket = downstreamServer.accept();
+                        connectionAssertions.forEach(c -> {
+                            try {
+                                c.accept(socket);
+                            } catch (final Throwable t) {
+                                try {
+                                    socket.close();
+                                    if (t instanceof AssertionError) {
+                                        throw (AssertionError) t;
+                                    }
+                                    throw new AssertionError(t);
+                                } catch (final IOException e) {
+                                    throw new RuntimeException(e);
+                                }
+                            }
+                        });
                         handleSocket(socket);
                     }
                 } catch (final SocketException e) {
@@ -34,32 +62,36 @@ public abstract class BaseProxyTest {
                 }
             }).start();
             consumer.accept(downstreamServer);
-        } catch (final IOException e) {
+        } catch (final IOException | NoSuchAlgorithmException | KeyStoreException
+                | KeyManagementException | UnrecoverableKeyException e) {
             throw new RuntimeException(e);
         }
     }
 
-    protected void assertRoundtripWorksWithoutProxy() {
-        withDownstreamServer(downstreamServer -> {
-            assertRoundtripWorks(downstreamServer.getLocalSocketAddress());
-        });
+    protected void assertRoundtripWorksWithoutProxy(
+            final SslConfiguration directSslConfig,
+            final List<Consumer<Socket>> downstreamSocketAssertions
+    ) {
+        withDownstreamServer(directSslConfig, downstreamServer -> {
+            assertRoundtripWorks(downstreamServer.getLocalSocketAddress(), directSslConfig::clientSocket);
+        }, downstreamSocketAssertions);
     }
 
     protected void assertRoundtripWorksWithProxy(
-            final Consumer<ChannelPipeline> upstreamChannelModifier,
-            final Consumer<ChannelPipeline> downstreamChannelModifier
+            final SslConfiguration upstreamSslConfig,
+            final SslConfiguration downstreamSslConfig,
+            final List<Consumer<Socket>> downstreamSocketAssertions
     ) {
-        withDownstreamServer(downstreamServer -> {
+        withDownstreamServer(downstreamSslConfig, downstreamServer -> {
             final int port = freePort();
             try (final ProxyApplication ignored = new ProxyApplication(factory -> {
                 final ProxyChannelInitializer initializer = (upstreamChannel, downstreamChannel) -> {
                     upstreamChannel.pipeline()
                             .addLast(new RelayingChannelInboundHandler("downstream", downstreamChannel));
+                    upstreamSslConfig.configureUpstreamPipeline(upstreamChannel.pipeline());
                     downstreamChannel.pipeline()
                             .addLast(new RelayingChannelInboundHandler("upstream", upstreamChannel));
-
-                    upstreamChannelModifier.accept(upstreamChannel.pipeline());
-                    downstreamChannelModifier.accept(downstreamChannel.pipeline());
+                    downstreamSslConfig.configureDownstreamPipeline(downstreamChannel.pipeline());
                 };
                 factory.createProxyChannel(
                         new Endpoint("127.0.0.1", port),
@@ -67,9 +99,9 @@ public abstract class BaseProxyTest {
                         initializer
                 );
             })) {
-                assertRoundtripWorks(new InetSocketAddress("127.0.0.1", port));
+                assertRoundtripWorks(new InetSocketAddress("127.0.0.1", port), upstreamSslConfig::clientSocket);
             }
-        });
+        }, downstreamSocketAssertions);
     }
 
     private int freePort() {
@@ -81,21 +113,27 @@ public abstract class BaseProxyTest {
         }
     }
 
-    private void assertRoundtripWorks(final SocketAddress endpoint) {
-        final String message = "Hello, world";
+    private void assertRoundtripWorks(final SocketAddress endpoint, final SocketFactory socketFactory) {
+        final String message = IntStream.range(0, 100)
+                .mapToObj(i -> UUID.randomUUID().toString())
+                .collect(joining(","));
         final byte[] messageBytes = message.getBytes(UTF_8);
-        try (final Socket socket = new Socket()) {
+        try (final Socket socket = socketFactory.create()) {
             socket.connect(endpoint);
             socket.getOutputStream().write(messageBytes);
             final ByteArrayOutputStream bos = new ByteArrayOutputStream();
             while (bos.size() < messageBytes.length) {
                 final byte[] buffer = new byte[1024];
                 final int len = socket.getInputStream().read(buffer);
+                if (len < 0) {
+                    throw new AssertionError("Premature end of stream");
+                }
                 bos.write(buffer, 0, len);
             }
             final String actual = new String(bos.toByteArray(), UTF_8);
             assertEquals(message, actual);
-        } catch (final IOException e) {
+        } catch (final IOException | NoSuchAlgorithmException | KeyStoreException
+                | KeyManagementException | UnrecoverableKeyException e) {
             throw new AssertionError(e);
         }
     }

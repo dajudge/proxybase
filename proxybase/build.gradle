@@ -5,8 +5,9 @@ dependencies {
     // Used for TLS hostname verification
     implementation 'org.apache.httpcomponents.client5:httpclient5:5.0-beta6'
     // The logging API
-    implementation 'org.slf4j:slf4j-api:1.7.29'
+    implementation libSlf4j
 
     testImplementation 'junit:junit:4.13'
+    testImplementation project(":testca")
     testRuntime 'ch.qos.logback:logback-classic:1.2.3'
 }

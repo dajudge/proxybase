@@ -20,33 +20,46 @@ package com.dajudge.proxybase;
 import com.dajudge.proxybase.ca.KeyStoreWrapper;
 import com.dajudge.proxybase.certs.KeyStoreManager;
 
-import javax.net.ssl.KeyManager;
 import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManager;
 import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.X509KeyManager;
+import javax.net.ssl.X509TrustManager;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
+import java.util.Arrays;
 
 import static javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm;
 
 class SslUtils {
-    static TrustManager[] createTrustManagers(final KeyStoreManager trustStoreManager) {
+    static X509TrustManager[] createTrustManagers(final KeyStoreManager trustStoreManager) {
         try {
+            if (trustStoreManager == null) {
+                return new X509TrustManager[]{};
+            }
             final TrustManagerFactory factory = TrustManagerFactory.getInstance(getDefaultAlgorithm());
             factory.init(trustStoreManager.getKeyStore().getKeyStore());
-            return factory.getTrustManagers();
+            return Arrays.stream(factory.getTrustManagers())
+                    .filter(it -> it instanceof X509TrustManager)
+                    .map(it -> (X509TrustManager) it)
+                    .toArray(X509TrustManager[]::new);
         } catch (final KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to setup trust manager", e);
         }
     }
 
-    static KeyManager[] createKeyManagers(final KeyStoreManager keyStoreManager) {
+    static X509KeyManager[] createKeyManagers(final KeyStoreManager keyStoreManager) {
         try {
+            if (keyStoreManager == null) {
+                return new X509KeyManager[]{};
+            }
             final KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             final KeyStoreWrapper keyStore = keyStoreManager.getKeyStore();
             factory.init(keyStore.getKeyStore(), keyStore.getKeyPassword());
-            return factory.getKeyManagers();
+            return Arrays.stream(factory.getKeyManagers())
+                    .filter(it -> it instanceof X509KeyManager)
+                    .map(it -> (X509KeyManager) it)
+                    .toArray(X509KeyManager[]::new);
         } catch (final UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to setup key manager", e);
         }
