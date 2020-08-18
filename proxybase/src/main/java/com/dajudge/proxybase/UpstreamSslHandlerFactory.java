@@ -17,7 +17,9 @@
 
 package com.dajudge.proxybase;
 
+import com.dajudge.proxybase.certs.Filesystem;
 import com.dajudge.proxybase.certs.KeyStoreManager;
+import com.dajudge.proxybase.config.UpstreamSslConfig;
 import io.netty.channel.ChannelHandler;
 import io.netty.handler.ssl.SslHandler;
 
@@ -27,14 +29,29 @@ import javax.net.ssl.SSLEngine;
 import javax.net.ssl.TrustManager;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
+import java.util.Optional;
+import java.util.function.Supplier;
 
 import static com.dajudge.proxybase.SslUtils.createKeyManagers;
 import static com.dajudge.proxybase.SslUtils.createTrustManagers;
+import static com.dajudge.proxybase.certs.ReloadingKeyStoreManager.createReloader;
 
 public class UpstreamSslHandlerFactory {
     public static ChannelHandler createUpstreamSslHandler(
+            final UpstreamSslConfig config,
+            final Supplier<Long> clock,
+            final Filesystem filesystem
+    ) {
+        return createUpstreamSslHandler(
+                config.isClientAuthRequired(),
+                config.getTrustStore().map(trustStore -> createReloader(trustStore, clock, filesystem)),
+                createReloader(config.getKeyStore(), clock, filesystem)
+        );
+    }
+
+    public static ChannelHandler createUpstreamSslHandler(
             final boolean enableClientAuth,
-            final KeyStoreManager trustStoreManager,
+            final Optional<KeyStoreManager> trustStoreManager,
             final KeyStoreManager keyStoreManager
     ) {
         try {

@@ -15,13 +15,14 @@
  *
  */
 
-package com.dajudge.proxybase;
+package com.dajudge.proxybase.util;
 
 import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSocket;
 import java.net.Socket;
 import java.security.cert.X509Certificate;
 import java.util.function.Consumer;
+import java.util.function.Supplier;
 
 import static org.junit.Assert.*;
 
@@ -46,11 +47,15 @@ public final class DownstreamSocketAssertions {
     }
 
     public static Consumer<Socket> hasCertFor(final String dn) {
+        return hasCertFor(() -> dn);
+    }
+
+    public static Consumer<Socket> hasCertFor(final Supplier<String> dnProvider) {
         return socket -> {
             try {
                 final X509Certificate cert = (X509Certificate) ((SSLSocket) socket).getSession()
                         .getPeerCertificates()[0];
-                assertEquals(dn, cert.getSubjectDN().getName());
+                assertEquals(dnProvider.get(), cert.getSubjectDN().getName());
             } catch (final SSLPeerUnverifiedException e) {
                 throw new AssertionError(e);
             }

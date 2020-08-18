@@ -15,11 +15,15 @@
  *
  */
 
-package com.dajudge.proxybase;
+package com.dajudge.proxybase.certs;
 
-import io.netty.channel.ChannelHandler;
-import io.netty.channel.ChannelHandlerAdapter;
+import java.io.File;
+import java.io.IOException;
 
-@ChannelHandler.Sharable
-public class NullChannelHandler extends ChannelHandlerAdapter {
+import static java.nio.file.Files.readAllBytes;
+
+public interface Filesystem {
+    Filesystem DEFAULT_FILESYSTEM = path -> readAllBytes(new File(path).toPath());
+
+    byte[] readFile(final String path) throws IOException;
 }

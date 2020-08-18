@@ -20,7 +20,7 @@ package com.dajudge.proxybase;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 
-interface HostnameCheck {
+public interface HostnameCheck {
     void verify(X509Certificate cert) throws CertificateException;
 
     HostnameCheck NULL_VERIFIER = (cert) -> {

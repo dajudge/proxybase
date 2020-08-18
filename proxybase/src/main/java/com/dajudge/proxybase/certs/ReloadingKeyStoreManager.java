@@ -27,18 +27,18 @@ import java.security.cert.CertificateException;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
-public class FileSystemKeyStoreManager implements KeyStoreManager {
-    private static final Logger LOG = LoggerFactory.getLogger(FileSystemKeyStoreManager.class);
+public class ReloadingKeyStoreManager implements KeyStoreManager {
+    private static final Logger LOG = LoggerFactory.getLogger(ReloadingKeyStoreManager.class);
     private final KeyStoreLoader loader;
     private final Supplier<Long> clock;
     private final long updateIntervalMsecs;
     private final Object keyStoreLock = new Object();
     private final Object clockLock = new Object();
     private long lastUpdate;
+    private final AtomicBoolean loading = new AtomicBoolean();
     private KeyStoreWrapper keyStore;
-    private AtomicBoolean loading = new AtomicBoolean();
 
-    public FileSystemKeyStoreManager(
+    public ReloadingKeyStoreManager(
             final KeyStoreLoader loader,
             final Supplier<Long> clock,
             final long updateIntervalMsecs
@@ -46,6 +46,18 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
         this.loader = loader;
         this.clock = clock;
         this.updateIntervalMsecs = updateIntervalMsecs;
+    }
+
+    public static ReloadingKeyStoreManager createReloader(
+            final KeyStoreConfig keystore,
+            final Supplier<Long> clock,
+            final Filesystem filesystem
+    ) {
+        return new ReloadingKeyStoreManager(
+                new FileSystemKeyStoreLoader(filesystem, keystore),
+                clock,
+                keystore.getUpdateIntervalMsecs()
+        );
     }
 
     public KeyStoreWrapper getKeyStore() {
@@ -71,73 +83,21 @@ public class FileSystemKeyStoreManager implements KeyStoreManager {
                 }
             } catch (final Exception e) {
                 LOG.warn("Failed to reload keystore", e);
+            } finally {
+                loading.set(false);
             }
-            loading.set(false);
         }
     }
 
     private boolean updateIsNecessary() {
         synchronized (clockLock) {
-            return clock.get() - lastUpdate > updateIntervalMsecs;
+            final long now = clock.get();
+            final long timePassedSinceLastUpdate = now - lastUpdate;
+            return timePassedSinceLastUpdate > updateIntervalMsecs;
         }
     }
 
     public interface KeyStoreLoader {
         KeyStoreWrapper load() throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException;
-    }
-
-    public static FileSystemKeyStoreManager upstreamKeyStoreManager(
-            final UpstreamSslConfig config,
-            final Supplier<Long> clock
-    ) {
-        return new FileSystemKeyStoreManager(
-                new FileSystemKeyStoreLoader(
-                        config.getKeyStore(),
-                        config.getKeyStorePassword(),
-                        config.getKeyStorePasswordFile(),
-                        config.getKeyPassword(),
-                        config.getKeyPasswordFile(),
-                        config.getKeyStoreType()
-                ),
-                clock,
-                config.getKeyStoreUpdateIntervalMsecs()
-        );
-    }
-
-    public static FileSystemKeyStoreManager upstreamTrustStoreManager(
-            final UpstreamSslConfig config,
-            final Supplier<Long> clock
-    ) {
-        return new FileSystemKeyStoreManager(
-                new FileSystemKeyStoreLoader(
-                        config.getTrustStore(),
-                        config.getTrustStorePassword(),
-                        config.getTrustStorePasswordFile(),
-                        null,
-                        null,
-                        config.getTrustStoreType()
-                ),
-                clock,
-                config.getTrustStoreUpdateIntervalMsecs()
-        );
-    }
-
-    public static FileSystemKeyStoreManager downstreamTrustStoreManager(
-            final DownstreamSslConfig config,
-            final Supplier<Long> clock
-    ) {
-        final KeyStoreConfig keyStore = config.getTrustStore();
-        return new FileSystemKeyStoreManager(
-                new FileSystemKeyStoreLoader(
-                        keyStore.getKeyStorePath(),
-                        keyStore.getKeyStorePassword(),
-                        keyStore.getKeyStorePasswordPath(),
-                        keyStore.getKeyPassword(),
-                        keyStore.getKeyPasswordPath(),
-                        keyStore.getKeyStoreType()
-                ),
-                clock,
-                keyStore.getUpdateIntervalMsecs()
-        );
     }
 }

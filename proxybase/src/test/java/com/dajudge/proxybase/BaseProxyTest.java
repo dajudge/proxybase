@@ -18,8 +18,10 @@
 package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ProxyChannelFactory.ProxyChannelInitializer;
-import com.dajudge.proxybase.TestSslConfiguration.SocketFactory;
-import com.dajudge.proxybase.TestSslConfiguration.SslConfiguration;
+import com.dajudge.proxybase.ca.test.TestCertificationAuthority;
+import com.dajudge.proxybase.util.TestSslConfiguration.SocketFactory;
+import com.dajudge.proxybase.util.TestSslConfiguration.SslConfiguration;
+import com.dajudge.proxybase.config.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -42,6 +44,15 @@ import static org.junit.Assert.assertEquals;
 
 public abstract class BaseProxyTest {
     private static final Logger LOG = LoggerFactory.getLogger(BaseProxyTest.class);
+
+    static final TestCertificationAuthority DOWNSTREAM_SERVER_CA =
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA");
+    static final TestCertificationAuthority DOWNSTREAM_CLIENT_CA =
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA");
+    static final TestCertificationAuthority UPSTREAM_SERVER_CA =
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA");
+    static final TestCertificationAuthority UPSTREAM_CLIENT_CA =
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA");
 
     private void withDownstreamServer(
             final SslConfiguration sslConfig,
@@ -98,6 +109,17 @@ public abstract class BaseProxyTest {
             final SslConfiguration downstreamSslConfig,
             final List<Consumer<Socket>> downstreamSocketAssertions
     ) {
+        final Consumer<Integer> proxyAssertion = port ->
+                assertRoundtripWorks(new InetSocketAddress("127.0.0.1", port), upstreamSslConfig::clientSocket);
+        withProxy(upstreamSslConfig, downstreamSslConfig, downstreamSocketAssertions, proxyAssertion);
+    }
+
+    protected void withProxy(
+            final SslConfiguration upstreamSslConfig,
+            final SslConfiguration downstreamSslConfig,
+            final List<Consumer<Socket>> downstreamSocketAssertions,
+            final Consumer<Integer> proxyConsumer
+    ) {
         withDownstreamServer(downstreamSslConfig, downstreamServer -> {
             final int port = freePort();
             try (final ProxyApplication ignored = new ProxyApplication(factory -> {
@@ -115,7 +137,7 @@ public abstract class BaseProxyTest {
                         initializer
                 );
             })) {
-                assertRoundtripWorks(new InetSocketAddress("127.0.0.1", port), upstreamSslConfig::clientSocket);
+                proxyConsumer.accept(port);
             }
         }, downstreamSocketAssertions);
     }
@@ -129,7 +151,7 @@ public abstract class BaseProxyTest {
         }
     }
 
-    private void assertRoundtripWorks(final SocketAddress endpoint, final SocketFactory socketFactory) {
+    protected void assertRoundtripWorks(final SocketAddress endpoint, final SocketFactory socketFactory) {
         final String message = IntStream.range(0, 100)
                 .mapToObj(i -> UUID.randomUUID().toString())
                 .collect(joining(","));

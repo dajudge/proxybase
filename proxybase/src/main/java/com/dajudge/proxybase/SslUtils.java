@@ -17,8 +17,8 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.certs.KeyStoreWrapper;
 import com.dajudge.proxybase.certs.KeyStoreManager;
+import com.dajudge.proxybase.certs.KeyStoreWrapper;
 
 import javax.net.ssl.KeyManagerFactory;
 import javax.net.ssl.TrustManagerFactory;
@@ -28,17 +28,22 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.Arrays;
+import java.util.Optional;
 
 import static javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm;
 
 class SslUtils {
     static X509TrustManager[] createTrustManagers(final KeyStoreManager trustStoreManager) {
+        return createTrustManagers(Optional.of(trustStoreManager));
+    }
+
+    static X509TrustManager[] createTrustManagers(final Optional<KeyStoreManager> trustStoreManager) {
         try {
-            if (trustStoreManager == null) {
+            if (!trustStoreManager.isPresent()) {
                 return new X509TrustManager[]{};
             }
             final TrustManagerFactory factory = TrustManagerFactory.getInstance(getDefaultAlgorithm());
-            factory.init(trustStoreManager.getKeyStore().getKeyStore());
+            factory.init(trustStoreManager.get().getKeyStore().getKeyStore());
             return Arrays.stream(factory.getTrustManagers())
                     .filter(it -> it instanceof X509TrustManager)
                     .map(it -> (X509TrustManager) it)
@@ -49,12 +54,17 @@ class SslUtils {
     }
 
     static X509KeyManager[] createKeyManagers(final KeyStoreManager keyStoreManager) {
+        return createKeyManagers(Optional.of(keyStoreManager));
+    }
+
+    static X509KeyManager[] createKeyManagers(final Optional<KeyStoreManager> keyStoreManager) {
         try {
-            if (keyStoreManager == null) {
+            if (!keyStoreManager.isPresent()) {
                 return new X509KeyManager[]{};
             }
             final KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final KeyStoreWrapper keyStore = keyStoreManager.getKeyStore();
+            final KeyStoreManager keyStoreWrapper = keyStoreManager.get();
+            final KeyStoreWrapper keyStore = keyStoreWrapper.getKeyStore();
             factory.init(keyStore.getKeyStore(), keyStore.getKeyPassword());
             return Arrays.stream(factory.getKeyManagers())
                     .filter(it -> it instanceof X509KeyManager)

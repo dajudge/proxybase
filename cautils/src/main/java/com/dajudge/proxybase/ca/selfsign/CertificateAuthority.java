@@ -19,6 +19,7 @@ package com.dajudge.proxybase.ca.selfsign;
 
 import com.dajudge.proxybase.ca.Helpers;
 import com.dajudge.proxybase.certs.KeyStoreManager;
+import com.dajudge.proxybase.certs.KeyStoreWrapper;
 
 import java.io.IOException;
 import java.security.*;
@@ -41,8 +42,9 @@ public class CertificateAuthority {
 
 
     private PrivateKey caPrivateKey() {
-        final KeyStore keyStore = keyStoreManager.getKeyStore().getKeyStore();
-        final char[] password = keyStoreManager.getKeyStore().getKeyPassword();
+        final KeyStoreWrapper wrapper = keyStoreManager.getKeyStore();
+        final KeyStore keyStore = wrapper.getKeyStore();
+        final char[] password = wrapper.getKeyPassword();
         return loadKey(keyStore, keyAlias, password);
     }
 

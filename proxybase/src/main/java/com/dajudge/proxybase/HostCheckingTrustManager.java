@@ -22,15 +22,17 @@ import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
 import java.util.Collection;
 
+import static java.util.Arrays.asList;
+
 class HostCheckingTrustManager implements X509TrustManager {
     private final Collection<X509TrustManager> nextManagers;
     private final HostnameCheck hostnameCheck;
 
     HostCheckingTrustManager(
-            final Collection<X509TrustManager> nextManagers,
+            final X509TrustManager[] nextManagers,
             final HostnameCheck hostnameCheck
     ) {
-        this.nextManagers = nextManagers;
+        this.nextManagers = asList(nextManagers);
         this.hostnameCheck = hostnameCheck;
     }
 

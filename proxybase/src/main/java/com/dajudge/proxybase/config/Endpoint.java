@@ -15,7 +15,7 @@
  *
  */
 
-package com.dajudge.proxybase;
+package com.dajudge.proxybase.config;
 
 import java.util.Objects;
 

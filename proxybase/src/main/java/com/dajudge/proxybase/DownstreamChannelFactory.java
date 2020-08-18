@@ -17,6 +17,7 @@
 
 package com.dajudge.proxybase;
 
+import com.dajudge.proxybase.config.Endpoint;
 import io.netty.bootstrap.Bootstrap;
 import io.netty.channel.Channel;
 import io.netty.channel.ChannelInitializer;
@@ -43,6 +44,7 @@ public class DownstreamChannelFactory {
             final Consumer<SocketChannel> initializer
     ) {
         try {
+            LOG.debug("Creating downstream channel for {}:{}", endpoint.getHost(), endpoint.getPort());
             final Channel channel = new Bootstrap()
                     .group(workerGroup)
                     .channel(NioSocketChannel.class)

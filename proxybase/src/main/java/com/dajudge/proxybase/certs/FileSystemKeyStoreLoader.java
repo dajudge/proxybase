@@ -17,8 +17,7 @@
 
 package com.dajudge.proxybase.certs;
 
-import java.io.File;
-import java.io.FileInputStream;
+import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
@@ -27,30 +26,16 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
 
-import static java.nio.file.Files.readAllBytes;
-
-public class FileSystemKeyStoreLoader implements FileSystemKeyStoreManager.KeyStoreLoader {
-    private final String keyStorePath;
-    private final char[] keyStorePassword;
-    private final String keyStorePasswordPath;
-    private final char[] keyPassword;
-    private final String keyPasswordPath;
-    private final String keyStoreType;
+public class FileSystemKeyStoreLoader implements ReloadingKeyStoreManager.KeyStoreLoader {
+    private final Filesystem filesystem;
+    private final KeyStoreConfig config;
 
     public FileSystemKeyStoreLoader(
-            final String keyStorePath,
-            final char[] keyStorePassword,
-            final String keyStorePasswordPath,
-            final char[] keyPassword,
-            final String keyPasswordPath,
-            final String keyStoreType
+            final Filesystem filesystem,
+            final KeyStoreConfig config
     ) {
-        this.keyStorePath = keyStorePath;
-        this.keyStorePassword = keyStorePassword;
-        this.keyStorePasswordPath = keyStorePasswordPath;
-        this.keyPassword = keyPassword;
-        this.keyPasswordPath = keyPasswordPath;
-        this.keyStoreType = keyStoreType;
+        this.filesystem = filesystem;
+        this.config = config;
     }
 
     @Override
@@ -58,25 +43,26 @@ public class FileSystemKeyStoreLoader implements FileSystemKeyStoreManager.KeySt
             throws KeyStoreException, IOException, CertificateException, NoSuchAlgorithmException {
         final char[] keyStorePassword = getEffectiveKeyStorePassword();
         final char[] keyPassword = getEffectiveKeyPassword();
-        final KeyStore keyStore = KeyStore.getInstance(keyStoreType);
-        try (final InputStream is = new FileInputStream(keyStorePath)) {
+        final KeyStore keyStore = KeyStore.getInstance(config.getKeyStoreType());
+        try (final InputStream is = new ByteArrayInputStream(filesystem.readFile(config.getKeyStorePath()))) {
             keyStore.load(is, keyStorePassword);
         }
         return new KeyStoreWrapper(keyStore, keyPassword);
     }
 
     private char[] getEffectiveKeyPassword() throws IOException {
-        return getEffectivePassword(keyPasswordPath, keyPassword);
+        return getEffectivePassword(config.getKeyPasswordPath(), config.getKeyPassword());
     }
 
     private char[] getEffectiveKeyStorePassword() throws IOException {
-        return getEffectivePassword(keyStorePasswordPath, keyStorePassword);
+        return getEffectivePassword(config.getKeyStorePasswordPath(), config.getKeyStorePassword());
     }
 
     private char[] getEffectivePassword(final String path, final char[] password) throws IOException {
         if (path != null) {
-            new String(readAllBytes(new File(path).toPath()), StandardCharsets.UTF_8);
+            new String(filesystem.readFile(path), StandardCharsets.UTF_8);
         }
         return password;
     }
+
 }

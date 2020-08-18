@@ -15,9 +15,11 @@
  *
  */
 
-package com.dajudge.proxybase;
+package com.dajudge.proxybase.util;
 
+import com.dajudge.proxybase.HostnameCheck;
 import com.dajudge.proxybase.certs.KeyStoreManager;
+import com.dajudge.proxybase.certs.KeyStoreWrapper;
 import io.netty.channel.ChannelPipeline;
 
 import javax.net.ssl.*;
@@ -29,6 +31,7 @@ import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.UnrecoverableKeyException;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Consumer;
 
 import static com.dajudge.proxybase.DownstreamSslHandlerFactory.createDownstreamSslHandler;
@@ -187,7 +190,7 @@ public class TestSslConfiguration {
                     "SSL",
                     createUpstreamSslHandler(
                             serverTrustStoreManager != null,
-                            serverTrustStoreManager,
+                            Optional.ofNullable(serverTrustStoreManager),
                             serverKeyStoreManager
                     )
             );
@@ -201,7 +204,7 @@ public class TestSslConfiguration {
                     createDownstreamSslHandler(
                             HostnameCheck.NULL_VERIFIER,
                             clientTrustStoreManager,
-                            getClientKeyStoreManager()
+                            Optional.ofNullable(getClientKeyStoreManager())
                     )
             );
         }
@@ -240,10 +243,8 @@ public class TestSslConfiguration {
             }
             final KeyManagerFactory keyManagerFactory = KeyManagerFactory
                     .getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            keyManagerFactory.init(
-                    keyStoreManager.getKeyStore().getKeyStore(),
-                    keyStoreManager.getKeyStore().getKeyPassword()
-            );
+            final KeyStoreWrapper keyStore = keyStoreManager.getKeyStore();
+            keyManagerFactory.init(keyStore.getKeyStore(), keyStore.getKeyPassword());
             return keyManagerFactory.getKeyManagers();
         }
 

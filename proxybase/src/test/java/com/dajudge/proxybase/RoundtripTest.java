@@ -17,9 +17,11 @@
 
 package com.dajudge.proxybase;
 
-import com.dajudge.proxybase.TestSslConfiguration.OneWaySslConfiguration;
-import com.dajudge.proxybase.TestSslConfiguration.PlaintextSslConfiguration;
-import com.dajudge.proxybase.TestSslConfiguration.SslConfiguration;
+import com.dajudge.proxybase.util.TestKeyStoreManager;
+import com.dajudge.proxybase.util.TestSslConfiguration;
+import com.dajudge.proxybase.util.TestSslConfiguration.OneWaySslConfiguration;
+import com.dajudge.proxybase.util.TestSslConfiguration.PlaintextSslConfiguration;
+import com.dajudge.proxybase.util.TestSslConfiguration.SslConfiguration;
 import com.dajudge.proxybase.certs.KeyStoreWrapper;
 import com.dajudge.proxybase.ca.test.TestCertificationAuthority;
 import org.junit.Test;
@@ -28,49 +30,32 @@ import org.junit.runners.Parameterized;
 
 import java.util.Collection;
 
-import static com.dajudge.proxybase.DownstreamSocketAssertions.*;
+import static com.dajudge.proxybase.util.DownstreamSocketAssertions.*;
 import static java.util.Arrays.asList;
 import static java.util.Collections.singletonList;
 
 @RunWith(Parameterized.class)
 public class RoundtripTest extends BaseProxyTest {
 
-    private static final TestCertificationAuthority DOWNSTREAM_SERVER_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA");
-    private static final TestCertificationAuthority DOWNSTREAM_CLIENT_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA");
-    private static final TestCertificationAuthority UPSTREAM_SERVER_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA");
-    private static final TestCertificationAuthority UPSTREAM_CLIENT_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA");
-    private static final KeyStoreWrapper DOWNSTREAM_SERVER_KEYSTORE =
-            DOWNSTREAM_SERVER_CA.createNewKeyStore("cn=downstreamServer");
-    private static final KeyStoreWrapper DOWNSTREAM_CLIENT_KEYSTORE =
-            DOWNSTREAM_CLIENT_CA.createNewKeyStore("cn=downstreamClient");
-    private static final KeyStoreWrapper UPSTREAM_SERVER_KEYSTORE =
-            UPSTREAM_SERVER_CA.createNewKeyStore("cn=upstreamServer");
-    private static final KeyStoreWrapper UPSTREAM_CLIENT_KEYSTORE =
-            UPSTREAM_CLIENT_CA.createNewKeyStore("cn=upstreamClient");
-
     private static final SslConfiguration PLAINTEXT = new PlaintextSslConfiguration();
     private static final SslConfiguration DOWNSTREAM_TLS = new OneWaySslConfiguration(
             () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            () -> DOWNSTREAM_SERVER_KEYSTORE
+            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer")
     );
     private static final SslConfiguration DOWNSTREAM_MTLS = new TestSslConfiguration.TwoWaySslConfiguration(
-            () -> DOWNSTREAM_CLIENT_KEYSTORE,
+            new TestKeyStoreManager(DOWNSTREAM_CLIENT_CA, "cn=downstreamClient"),
             () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            () -> DOWNSTREAM_SERVER_KEYSTORE,
+            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer"),
             () -> new KeyStoreWrapper(DOWNSTREAM_CLIENT_CA.getTrustStore("jks"), null)
     );
     private static final SslConfiguration UPSTREAM_TLS = new OneWaySslConfiguration(
             () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            () -> UPSTREAM_SERVER_KEYSTORE
+            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer")
     );
     private static final SslConfiguration UPSTREAM_MTLS = new TestSslConfiguration.TwoWaySslConfiguration(
-            () -> UPSTREAM_CLIENT_KEYSTORE,
+            new TestKeyStoreManager(UPSTREAM_CLIENT_CA, "cn=upstreamClient"),
             () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            () -> UPSTREAM_SERVER_KEYSTORE,
+            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer"),
             () -> new KeyStoreWrapper(UPSTREAM_CLIENT_CA.getTrustStore("jks"), null)
     );
 
