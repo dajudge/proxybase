@@ -5,6 +5,6 @@ dependencies {
     // The logging API
     implementation libSlf4j
 
-    implementation project(":cautils")
-    implementation project(":proxybase")
+    api project(":cautils")
+    api project(":proxybase")
 }
