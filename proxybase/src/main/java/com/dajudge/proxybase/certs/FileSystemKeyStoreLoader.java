@@ -60,7 +60,7 @@ public class FileSystemKeyStoreLoader implements ReloadingKeyStoreManager.KeySto
 
     private char[] getEffectivePassword(final String path, final char[] password) throws IOException {
         if (path != null) {
-            new String(filesystem.readFile(path), StandardCharsets.UTF_8);
+            return new String(filesystem.readFile(path), StandardCharsets.UTF_8).toCharArray();
         }
         return password;
     }
