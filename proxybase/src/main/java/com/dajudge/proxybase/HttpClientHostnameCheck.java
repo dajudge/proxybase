@@ -19,13 +19,14 @@ package com.dajudge.proxybase;
 
 import org.apache.hc.client5.http.ssl.HttpsSupport;
 
-import javax.net.ssl.SSLPeerUnverifiedException;
 import javax.net.ssl.SSLSession;
 import javax.net.ssl.SSLSessionContext;
 import java.security.Principal;
 import java.security.cert.Certificate;
 import java.security.cert.CertificateException;
 import java.security.cert.X509Certificate;
+
+import static java.lang.String.format;
 
 class HttpClientHostnameCheck implements HostnameCheck {
     public static final javax.net.ssl.HostnameVerifier VERIFIER = HttpsSupport.getDefaultHostnameVerifier();
@@ -37,9 +38,15 @@ class HttpClientHostnameCheck implements HostnameCheck {
 
     @Override
     public void verify(final X509Certificate cert) throws CertificateException {
-        if (!VERIFIER.verify(hostname, new DummySslSession(cert))) {
-            throw new CertificateException("Certificate does not match hostname: " + hostname);
+        if (VERIFIER.verify(hostname, new DummySslSession(cert))) {
+            return;
         }
+        throw new CertificateException(format(
+                "Certificate does not match hostname '%s': DN=%s, SANs=%s ",
+                hostname,
+                cert.getSubjectDN(),
+                cert.getSubjectAlternativeNames()
+        ));
     }
 
     private static class DummySslSession implements SSLSession {
@@ -100,7 +107,7 @@ class HttpClientHostnameCheck implements HostnameCheck {
         }
 
         @Override
-        public Certificate[] getPeerCertificates() throws SSLPeerUnverifiedException {
+        public Certificate[] getPeerCertificates()  {
             return new Certificate[]{certificate};
         }
 
@@ -116,7 +123,7 @@ class HttpClientHostnameCheck implements HostnameCheck {
         }
 
         @Override
-        public Principal getPeerPrincipal() throws SSLPeerUnverifiedException {
+        public Principal getPeerPrincipal()  {
             return null;
         }
 
