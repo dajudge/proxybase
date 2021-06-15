@@ -204,8 +204,9 @@ public class TestSslConfiguration {
                     createDownstreamSslHandler(
                             HostnameCheck.NULL_VERIFIER,
                             clientTrustStoreManager,
-                            Optional.ofNullable(getClientKeyStoreManager())
-                    )
+                            Optional.ofNullable(getClientKeyStoreManager()),
+                            Optional.empty()
+                    ).apply(pipeline.channel())
             );
         }
 

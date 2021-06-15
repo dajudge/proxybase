@@ -58,18 +58,26 @@ class SslUtils {
     }
 
     static X509KeyManager[] createKeyManagers(final Optional<KeyStoreManager> keyStoreManager) {
+        if (!keyStoreManager.isPresent()) {
+            return new X509KeyManager[]{};
+        }
+        return Arrays.stream(createKeyManagerFactory(keyStoreManager).getKeyManagers())
+                .filter(it -> it instanceof X509KeyManager)
+                .map(it -> (X509KeyManager) it)
+                .toArray(X509KeyManager[]::new);
+    }
+
+    public static KeyManagerFactory createKeyManagerFactory(final Optional<KeyStoreManager> keyStoreManager) {
         try {
-            if (!keyStoreManager.isPresent()) {
-                return new X509KeyManager[]{};
-            }
             final KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
-            final KeyStoreManager keyStoreWrapper = keyStoreManager.get();
-            final KeyStoreWrapper keyStore = keyStoreWrapper.getKeyStore();
-            factory.init(keyStore.getKeyStore(), keyStore.getKeyPassword());
-            return Arrays.stream(factory.getKeyManagers())
-                    .filter(it -> it instanceof X509KeyManager)
-                    .map(it -> (X509KeyManager) it)
-                    .toArray(X509KeyManager[]::new);
+            if (keyStoreManager.isPresent()) {
+                final KeyStoreManager keyStoreWrapper = keyStoreManager.get();
+                final KeyStoreWrapper keyStore = keyStoreWrapper.getKeyStore();
+                factory.init(keyStore.getKeyStore(), keyStore.getKeyPassword());
+            } else {
+                factory.init(null, null);
+            }
+            return factory;
         } catch (final UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to setup key manager", e);
         }

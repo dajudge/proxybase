@@ -20,54 +20,76 @@ package com.dajudge.proxybase;
 import com.dajudge.proxybase.certs.Filesystem;
 import com.dajudge.proxybase.certs.KeyStoreManager;
 import com.dajudge.proxybase.config.DownstreamSslConfig;
+import com.dajudge.proxybase.config.Endpoint;
+import io.netty.channel.Channel;
 import io.netty.channel.ChannelHandler;
-import io.netty.handler.ssl.SslHandler;
+import io.netty.channel.socket.SocketChannel;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.SSLEngine;
-import javax.net.ssl.X509TrustManager;
+import javax.net.ssl.*;
 import java.security.KeyManagementException;
 import java.security.NoSuchAlgorithmException;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.function.Supplier;
 
 import static com.dajudge.proxybase.HostnameCheck.NULL_VERIFIER;
-import static com.dajudge.proxybase.SslUtils.createKeyManagers;
-import static com.dajudge.proxybase.SslUtils.createTrustManagers;
+import static com.dajudge.proxybase.SslUtils.*;
 import static com.dajudge.proxybase.certs.ReloadingKeyStoreManager.createReloader;
 
 public class DownstreamSslHandlerFactory {
-    public static ChannelHandler createDownstreamSslHandler(
+    public static Function<Channel, ChannelHandler> createDownstreamSslHandler(
             final DownstreamSslConfig config,
-            final String downstreamHostname,
+            final Endpoint downstreamEndpoint,
             final Supplier<Long> clock,
             final Filesystem filesystem
-            ) {
+    ) {
         final HostnameCheck hostnameCheck = config.isHostnameVerificationEnabled()
-                ? new HttpClientHostnameCheck(downstreamHostname)
+                ? new HttpClientHostnameCheck(downstreamEndpoint.getHost())
                 : NULL_VERIFIER;
         return createDownstreamSslHandler(
                 hostnameCheck,
                 createReloader(config.getTrustStore(), clock, filesystem),
-                config.getKeyStore().map(it -> createReloader(it, clock, filesystem))
+                config.getKeyStore().map(it -> createReloader(it, clock, filesystem)),
+                Optional.of(downstreamEndpoint)
         );
     }
 
-    public static ChannelHandler createDownstreamSslHandler(
+    public static Function<Channel, ChannelHandler> createDownstreamSslHandler(
             final HostnameCheck hostnameCheck,
             final KeyStoreManager trustStoreManager,
-            final Optional<KeyStoreManager> keyStoreManager
+            final Optional<KeyStoreManager> keyStoreManager,
+            final Optional<Endpoint> peerEndpoint
     ) {
         try {
             final SSLContext clientContext = SSLContext.getInstance("TLS");
+            final HostCheckingTrustManager trustManager = new HostCheckingTrustManager(
+                    createTrustManagers(trustStoreManager),
+                    hostnameCheck
+            );
             final X509TrustManager[] trustManagers = {
-                    new HostCheckingTrustManager(createTrustManagers(trustStoreManager), hostnameCheck)
+                    trustManager
             };
-            clientContext.init(createKeyManagers(keyStoreManager), trustManagers, null);
-            final SSLEngine engine = clientContext.createSSLEngine();
+            final X509KeyManager[] keyManagers = createKeyManagers(keyStoreManager);
+            clientContext.init(keyManagers, trustManagers, null);
+            final SSLEngine engine = peerEndpoint
+                    .map(it -> clientContext.createSSLEngine(it.getHost(), it.getPort()))
+                    .orElse(clientContext.createSSLEngine());
             engine.setUseClientMode(true);
-            return new SslHandler(engine);
-        } catch (final NoSuchAlgorithmException | KeyManagementException e) {
+            final SslContext context = SslContextBuilder.forClient()
+                    .keyManager(createKeyManagerFactory(keyStoreManager))
+                    .trustManager(trustManager)
+                    .build();
+            if (peerEndpoint.isPresent()) {
+                return ch -> {
+                    final Endpoint endpoint = peerEndpoint.get();
+                    return context.newHandler(ch.alloc(), endpoint.getHost(), endpoint.getPort());
+                };
+            } else {
+                return ch -> context.newHandler(ch.alloc());
+            }
+        } catch (final NoSuchAlgorithmException | KeyManagementException | SSLException e) {
             throw new RuntimeException("Failed to initialize downstream SSL handler", e);
         }
     }
