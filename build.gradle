@@ -1,7 +1,6 @@
 plugins {
     id "com.palantir.git-version" version "0.12.2"
-    id "com.jfrog.bintray" version "1.8.4" apply false
-    id "com.github.hierynomus.license" version "0.15.0" apply false
+    id "com.github.hierynomus.license" version "0.16.1" apply false
 }
 
 def versionDetails = versionDetails()
@@ -17,8 +16,6 @@ ext {
 subprojects {
     apply plugin: "java"
     apply plugin: "java-library"
-    apply plugin: "maven-publish"
-    apply plugin: "com.jfrog.bintray"
 
     sourceCompatibility = 1.8
     targetCompatibility = 1.8
@@ -30,10 +27,11 @@ subprojects {
 
     version buildVersion
     apply from: "${rootProject.projectDir}/publishing.gradle"
-    if (!version.endsWith("-SNAPSHOT")) {
-        apply from: "${rootProject.projectDir}/bintray.gradle"
-    } else {
-        println "Not a tag build. Not configuring bintray."
+    apply from: "${rootProject.projectDir}/signing.gradle"
+
+    java {
+        withJavadocJar()
+        withSourcesJar()
     }
 
     test {

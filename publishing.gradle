@@ -1,3 +1,5 @@
+apply plugin: "maven-publish"
+
 def scmUrl = 'https://github.com/dajudge/proxybase'
 def pomConfig = {
     licenses {
@@ -25,7 +27,7 @@ def projectArtifactId = project.name
 def projectVersion = project.version
 publishing {
     publications {
-        ProxybasePublication(MavenPublication) {
+        Proxybase(MavenPublication) {
             from components.java
             groupId projectGroupId
             artifactId projectArtifactId
@@ -36,6 +38,16 @@ publishing {
                 root.appendNode('name', "proxybase-${projectArtifactId}")
                 root.appendNode('url', scmUrl)
                 root.children().last() + pomConfig
+            }
+        }
+    }
+    repositories {
+        maven {
+            name = "OSSRH"
+            setUrl("https://s01.oss.sonatype.org/service/local/staging/deploy/maven2")
+            credentials {
+                username = System.getenv("OSSRH_USER") ?: "wrong"
+                password = System.getenv("OSSRH_PASSWORD") ?: "credentials"
             }
         }
     }
