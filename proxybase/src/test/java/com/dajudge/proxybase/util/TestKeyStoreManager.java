@@ -23,19 +23,22 @@ import com.dajudge.proxybase.certs.KeyStoreWrapper;
 
 public class TestKeyStoreManager implements KeyStoreManager {
     private final TestCertificationAuthority ca;
+    private final String keyStoreType;
     private String dn;
 
     public TestKeyStoreManager(
             final TestCertificationAuthority ca,
-            final String dn
+            final String dn,
+            final String keyStoreType
     ) {
         this.ca = ca;
         this.dn = dn;
+        this.keyStoreType = keyStoreType;
     }
 
     @Override
     public KeyStoreWrapper getKeyStore() {
-        return ca.createNewKeyStore(dn);
+        return ca.createNewKeyStore(dn, keyStoreType);
     }
 
     public void replaceDn(final String dn) {

@@ -35,19 +35,20 @@ import static java.util.Arrays.asList;
 public class HotCertReplaceTest extends BaseProxyTest {
     private final TestKeyStoreManager downstreamClientKeyStore = new TestKeyStoreManager(
             DOWNSTREAM_CLIENT_CA,
-            "cn=downstreamClient"
+            "cn=downstreamClient",
+            KEYSTORE_TYPE
     );
     private final SslConfiguration downstreamMtls = new TwoWaySslConfiguration(
             downstreamClientKeyStore,
-            () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer"),
-            () -> new KeyStoreWrapper(DOWNSTREAM_CLIENT_CA.getTrustStore("jks"), null)
+            () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore(KEYSTORE_TYPE), null),
+            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(DOWNSTREAM_CLIENT_CA.getTrustStore(KEYSTORE_TYPE), null)
     );
     private final SslConfiguration upstreamMtls = new TwoWaySslConfiguration(
-            new TestKeyStoreManager(UPSTREAM_CLIENT_CA, "cn=upstreamClient"),
-            () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer"),
-            () -> new KeyStoreWrapper(UPSTREAM_CLIENT_CA.getTrustStore("jks"), null)
+            new TestKeyStoreManager(UPSTREAM_CLIENT_CA, "cn=upstreamClient", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore(KEYSTORE_TYPE), null),
+            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(UPSTREAM_CLIENT_CA.getTrustStore(KEYSTORE_TYPE), null)
     );
 
     @Test

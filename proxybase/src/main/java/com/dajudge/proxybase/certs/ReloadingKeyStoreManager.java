@@ -34,8 +34,8 @@ public class ReloadingKeyStoreManager implements KeyStoreManager {
     private final long updateIntervalMsecs;
     private final Object keyStoreLock = new Object();
     private final Object clockLock = new Object();
-    private long lastUpdate;
     private final AtomicBoolean loading = new AtomicBoolean();
+    private long lastUpdate;
     private KeyStoreWrapper keyStore;
 
     public ReloadingKeyStoreManager(
@@ -60,6 +60,7 @@ public class ReloadingKeyStoreManager implements KeyStoreManager {
         );
     }
 
+    @Override
     public KeyStoreWrapper getKeyStore() {
         updateIfNecessary();
         synchronized (keyStoreLock) {

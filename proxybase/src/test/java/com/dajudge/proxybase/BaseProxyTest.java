@@ -44,15 +44,15 @@ import static org.junit.Assert.assertEquals;
 
 public abstract class BaseProxyTest {
     private static final Logger LOG = LoggerFactory.getLogger(BaseProxyTest.class);
-
+    protected static final String KEYSTORE_TYPE = "jks";
     static final TestCertificationAuthority DOWNSTREAM_SERVER_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA");
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA", KEYSTORE_TYPE);
     static final TestCertificationAuthority DOWNSTREAM_CLIENT_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA");
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA", KEYSTORE_TYPE);
     static final TestCertificationAuthority UPSTREAM_SERVER_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA");
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamServerCA", KEYSTORE_TYPE);
     static final TestCertificationAuthority UPSTREAM_CLIENT_CA =
-            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA");
+            new TestCertificationAuthority(System::currentTimeMillis, "cn=downstreamClientCA", KEYSTORE_TYPE);
 
     private void withDownstreamServer(
             final SslConfiguration sslConfig,

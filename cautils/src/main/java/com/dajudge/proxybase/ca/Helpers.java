@@ -133,7 +133,7 @@ public final class Helpers {
         });
     }
 
-    public static KeyStore createJks(
+    public static KeyStore createKeyStore(
             final ThrowingConsumer<KeyStore> withKeyStore,
             final String type
     ) {

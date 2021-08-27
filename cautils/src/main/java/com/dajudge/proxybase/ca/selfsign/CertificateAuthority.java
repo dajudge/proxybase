@@ -49,7 +49,7 @@ public class CertificateAuthority {
     }
 
     public KeyStore getTrustStore(final String type) {
-        return Helpers.createJks(keyStore -> {
+        return Helpers.createKeyStore(keyStore -> {
             keyStore.setCertificateEntry("ca", caCert());
         }, type);
     }

@@ -38,25 +38,26 @@ import static java.util.Collections.singletonList;
 public class RoundtripTest extends BaseProxyTest {
 
     private static final SslConfiguration PLAINTEXT = new PlaintextSslConfiguration();
+    protected static final String KEYSTORE_TYPE = "jks";
     private static final SslConfiguration DOWNSTREAM_TLS = new OneWaySslConfiguration(
-            () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer")
+            () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore(KEYSTORE_TYPE), null),
+            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer", KEYSTORE_TYPE)
     );
     private static final SslConfiguration DOWNSTREAM_MTLS = new TestSslConfiguration.TwoWaySslConfiguration(
-            new TestKeyStoreManager(DOWNSTREAM_CLIENT_CA, "cn=downstreamClient"),
-            () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer"),
-            () -> new KeyStoreWrapper(DOWNSTREAM_CLIENT_CA.getTrustStore("jks"), null)
+            new TestKeyStoreManager(DOWNSTREAM_CLIENT_CA, "cn=downstreamClient", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(DOWNSTREAM_SERVER_CA.getTrustStore(KEYSTORE_TYPE), null),
+            new TestKeyStoreManager(DOWNSTREAM_SERVER_CA, "cn=downstreamServer", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(DOWNSTREAM_CLIENT_CA.getTrustStore(KEYSTORE_TYPE), null)
     );
     private static final SslConfiguration UPSTREAM_TLS = new OneWaySslConfiguration(
-            () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer")
+            () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore(KEYSTORE_TYPE), null),
+            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer", KEYSTORE_TYPE)
     );
     private static final SslConfiguration UPSTREAM_MTLS = new TestSslConfiguration.TwoWaySslConfiguration(
-            new TestKeyStoreManager(UPSTREAM_CLIENT_CA, "cn=upstreamClient"),
-            () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore("jks"), null),
-            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer"),
-            () -> new KeyStoreWrapper(UPSTREAM_CLIENT_CA.getTrustStore("jks"), null)
+            new TestKeyStoreManager(UPSTREAM_CLIENT_CA, "cn=upstreamClient", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(UPSTREAM_SERVER_CA.getTrustStore(KEYSTORE_TYPE), null),
+            new TestKeyStoreManager(UPSTREAM_SERVER_CA, "cn=upstreamServer", KEYSTORE_TYPE),
+            () -> new KeyStoreWrapper(UPSTREAM_CLIENT_CA.getTrustStore(KEYSTORE_TYPE), null)
     );
 
     @Parameterized.Parameters
