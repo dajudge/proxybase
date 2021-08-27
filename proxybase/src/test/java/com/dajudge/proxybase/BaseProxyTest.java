@@ -19,9 +19,9 @@ package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.ProxyChannelFactory.ProxyChannelInitializer;
 import com.dajudge.proxybase.ca.test.TestCertificationAuthority;
+import com.dajudge.proxybase.config.Endpoint;
 import com.dajudge.proxybase.util.TestSslConfiguration.SocketFactory;
 import com.dajudge.proxybase.util.TestSslConfiguration.SslConfiguration;
-import com.dajudge.proxybase.config.Endpoint;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

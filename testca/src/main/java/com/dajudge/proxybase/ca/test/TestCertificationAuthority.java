@@ -18,9 +18,9 @@
 package com.dajudge.proxybase.ca.test;
 
 import com.dajudge.proxybase.ca.Helpers;
-import com.dajudge.proxybase.certs.KeyStoreWrapper;
 import com.dajudge.proxybase.ca.selfsign.CertificateAuthority;
 import com.dajudge.proxybase.certs.KeyStoreManager;
+import com.dajudge.proxybase.certs.KeyStoreWrapper;
 
 import java.security.KeyPair;
 import java.security.cert.Certificate;

@@ -17,13 +17,12 @@
 
 package com.dajudge.proxybase;
 
+import com.dajudge.proxybase.certs.KeyStoreWrapper;
 import com.dajudge.proxybase.util.TestKeyStoreManager;
 import com.dajudge.proxybase.util.TestSslConfiguration;
 import com.dajudge.proxybase.util.TestSslConfiguration.OneWaySslConfiguration;
 import com.dajudge.proxybase.util.TestSslConfiguration.PlaintextSslConfiguration;
 import com.dajudge.proxybase.util.TestSslConfiguration.SslConfiguration;
-import com.dajudge.proxybase.certs.KeyStoreWrapper;
-import com.dajudge.proxybase.ca.test.TestCertificationAuthority;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.Parameterized;
