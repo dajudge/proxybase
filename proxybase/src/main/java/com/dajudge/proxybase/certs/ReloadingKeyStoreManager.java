@@ -24,6 +24,7 @@ import java.io.IOException;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
 import java.security.cert.CertificateException;
+import java.util.Optional;
 import java.util.concurrent.atomic.AtomicBoolean;
 import java.util.function.Supplier;
 
@@ -46,6 +47,14 @@ public class ReloadingKeyStoreManager implements KeyStoreManager {
         this.loader = loader;
         this.clock = clock;
         this.updateIntervalMsecs = updateIntervalMsecs;
+    }
+
+    public static Optional<ReloadingKeyStoreManager> createReloader(
+            final Optional<KeyStoreConfig> keystore,
+            final Supplier<Long> clock,
+            final Filesystem filesystem
+    ) {
+        return keystore.map(it -> createReloader(it, clock, filesystem));
     }
 
     public static ReloadingKeyStoreManager createReloader(

@@ -22,12 +22,12 @@ import com.dajudge.proxybase.certs.KeyStoreConfig;
 import java.util.Optional;
 
 public class DownstreamSslConfig {
-    private final KeyStoreConfig trustStore;
+    private final Optional<KeyStoreConfig> trustStore;
     private final Optional<KeyStoreConfig> keyStore;
     private final boolean hostnameVerificationEnabled;
 
     public DownstreamSslConfig(
-            final KeyStoreConfig trustStore,
+            final Optional<KeyStoreConfig> trustStore,
             final Optional<KeyStoreConfig> keyStore,
             final boolean hostnameVerificationEnabled
     ) {
@@ -36,7 +36,7 @@ public class DownstreamSslConfig {
         this.hostnameVerificationEnabled = hostnameVerificationEnabled;
     }
 
-    public KeyStoreConfig getTrustStore() {
+    public Optional<KeyStoreConfig> getTrustStore() {
         return trustStore;
     }
 

@@ -19,17 +19,18 @@ package com.dajudge.proxybase;
 
 import com.dajudge.proxybase.certs.KeyStoreManager;
 import com.dajudge.proxybase.certs.KeyStoreWrapper;
+import com.dajudge.proxybase.config.Endpoint;
+import io.netty.handler.ssl.SslContext;
+import io.netty.handler.ssl.SslContextBuilder;
 
-import javax.net.ssl.KeyManagerFactory;
-import javax.net.ssl.TrustManagerFactory;
-import javax.net.ssl.X509KeyManager;
-import javax.net.ssl.X509TrustManager;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.UnrecoverableKeyException;
+import javax.net.ssl.*;
+import java.security.*;
 import java.util.Arrays;
+import java.util.List;
 import java.util.Optional;
 
+import static java.util.Arrays.asList;
+import static java.util.Arrays.stream;
 import static javax.net.ssl.TrustManagerFactory.getDefaultAlgorithm;
 
 class SslUtils {
@@ -37,14 +38,17 @@ class SslUtils {
         return createTrustManagers(Optional.of(trustStoreManager));
     }
 
-    static X509TrustManager[] createTrustManagers(final Optional<KeyStoreManager> trustStoreManager) {
+    static X509TrustManager[] createTrustManagers(final Optional<? extends KeyStoreManager> trustStoreManager) {
         try {
-            if (!trustStoreManager.isPresent()) {
-                return new X509TrustManager[]{};
-            }
             final TrustManagerFactory factory = TrustManagerFactory.getInstance(getDefaultAlgorithm());
+            if (!trustStoreManager.isPresent()) {
+                factory.init((KeyStore) null);
+                return stream(factory.getTrustManagers())
+                        .map(it -> (X509TrustManager) it)
+                        .toArray(X509TrustManager[]::new);
+            }
             factory.init(trustStoreManager.get().getKeyStore().getKeyStore());
-            return Arrays.stream(factory.getTrustManagers())
+            return stream(factory.getTrustManagers())
                     .filter(it -> it instanceof X509TrustManager)
                     .map(it -> (X509TrustManager) it)
                     .toArray(X509TrustManager[]::new);
@@ -57,17 +61,17 @@ class SslUtils {
         return createKeyManagers(Optional.of(keyStoreManager));
     }
 
-    static X509KeyManager[] createKeyManagers(final Optional<KeyStoreManager> keyStoreManager) {
+    static X509KeyManager[] createKeyManagers(final Optional<? extends KeyStoreManager> keyStoreManager) {
         if (!keyStoreManager.isPresent()) {
             return new X509KeyManager[]{};
         }
-        return Arrays.stream(createKeyManagerFactory(keyStoreManager).getKeyManagers())
+        return stream(createKeyManagerFactory(keyStoreManager).getKeyManagers())
                 .filter(it -> it instanceof X509KeyManager)
                 .map(it -> (X509KeyManager) it)
                 .toArray(X509KeyManager[]::new);
     }
 
-    public static KeyManagerFactory createKeyManagerFactory(final Optional<KeyStoreManager> keyStoreManager) {
+    static KeyManagerFactory createKeyManagerFactory(final Optional<? extends KeyStoreManager> keyStoreManager) {
         try {
             final KeyManagerFactory factory = KeyManagerFactory.getInstance(KeyManagerFactory.getDefaultAlgorithm());
             if (keyStoreManager.isPresent()) {
@@ -81,5 +85,26 @@ class SslUtils {
         } catch (final UnrecoverableKeyException | KeyStoreException | NoSuchAlgorithmException e) {
             throw new RuntimeException("Failed to setup key manager", e);
         }
+    }
+
+    static SslContext createClientSslContext(
+            final HostnameCheck hostnameCheck,
+            final Optional<? extends KeyStoreManager> trustStoreManager,
+            final Optional<? extends KeyStoreManager> keyStoreManager
+    ) throws NoSuchAlgorithmException, KeyManagementException, SSLException {
+        final SSLContext clientContext = SSLContext.getInstance("TLS");
+        final HostCheckingTrustManager trustManager = new HostCheckingTrustManager(
+                createTrustManagers(trustStoreManager),
+                hostnameCheck
+        );
+        final X509TrustManager[] trustManagers = {
+                trustManager
+        };
+        final X509KeyManager[] keyManagers = createKeyManagers(keyStoreManager);
+        clientContext.init(keyManagers, trustManagers, null);
+        return SslContextBuilder.forClient()
+                .keyManager(createKeyManagerFactory(keyStoreManager))
+                .trustManager(trustManager)
+                .build();
     }
 }

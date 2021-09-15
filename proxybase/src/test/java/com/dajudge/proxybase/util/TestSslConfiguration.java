@@ -20,6 +20,7 @@ package com.dajudge.proxybase.util;
 import com.dajudge.proxybase.HostnameCheck;
 import com.dajudge.proxybase.certs.KeyStoreManager;
 import com.dajudge.proxybase.certs.KeyStoreWrapper;
+import com.dajudge.proxybase.config.Endpoint;
 import io.netty.channel.ChannelPipeline;
 
 import javax.net.ssl.*;
@@ -76,7 +77,7 @@ public class TestSslConfiguration {
 
         void configureUpstreamPipeline(ChannelPipeline pipeline);
 
-        void configureDownstreamPipeline(ChannelPipeline pipeline);
+        void configureDownstreamPipeline(ChannelPipeline pipeline, Endpoint downstreamEndpoint);
     }
 
     public interface SocketFactory {
@@ -101,7 +102,7 @@ public class TestSslConfiguration {
         }
 
         @Override
-        public void configureDownstreamPipeline(final ChannelPipeline pipeline) {
+        public void configureDownstreamPipeline(final ChannelPipeline pipeline, final Endpoint downstreamEndpoint) {
         }
     }
 
@@ -197,15 +198,15 @@ public class TestSslConfiguration {
         }
 
         @Override
-        public void configureDownstreamPipeline(final ChannelPipeline pipeline) {
+        public void configureDownstreamPipeline(final ChannelPipeline pipeline, final Endpoint downstreamEndpoint) {
             pipeline.addAfter(
                     LOGGING_CONTEXT_HANDLER,
                     "SSL",
                     createDownstreamSslHandler(
                             HostnameCheck.NULL_VERIFIER,
-                            clientTrustStoreManager,
+                            Optional.of(clientTrustStoreManager),
                             Optional.ofNullable(getClientKeyStoreManager()),
-                            Optional.empty()
+                            downstreamEndpoint
                     ).apply(pipeline.channel())
             );
         }

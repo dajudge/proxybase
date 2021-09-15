@@ -123,17 +123,19 @@ public abstract class BaseProxyTest {
         withDownstreamServer(downstreamSslConfig, downstreamServer -> {
             final int port = freePort();
             try (final ProxyApplication ignored = new ProxyApplication(factory -> {
+                final Endpoint upstreamEndpoint = new Endpoint("127.0.0.1", port);
+                final Endpoint downstreamEndpoint = new Endpoint("127.0.0.1", downstreamServer.getLocalPort());
                 final ProxyChannelInitializer initializer = (upstreamChannel, downstreamChannel) -> {
                     upstreamChannel.pipeline()
                             .addLast(new RelayingChannelInboundHandler("downstream", downstreamChannel));
                     upstreamSslConfig.configureUpstreamPipeline(upstreamChannel.pipeline());
                     downstreamChannel.pipeline()
                             .addLast(new RelayingChannelInboundHandler("upstream", upstreamChannel));
-                    downstreamSslConfig.configureDownstreamPipeline(downstreamChannel.pipeline());
+                    downstreamSslConfig.configureDownstreamPipeline(downstreamChannel.pipeline(), downstreamEndpoint);
                 };
                 factory.createProxyChannel(
-                        new Endpoint("127.0.0.1", port),
-                        new Endpoint("127.0.0.1", downstreamServer.getLocalPort()),
+                        upstreamEndpoint,
+                        downstreamEndpoint,
                         initializer
                 );
             })) {
